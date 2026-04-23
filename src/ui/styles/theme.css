@@ -1,0 +1,205 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GRIDOPS Design System — v3.0
+   Inspired by SCADA/EMS control interfaces for DSO operators.
+   Industrial precision. High-density data. Semantic power-system colors.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root,
+[data-theme="light"] {
+  /* ── Core surfaces ── */
+  --bg-base:    #F2F4F7;
+  --bg-surface: #FFFFFF;
+  --bg-raised:  #FFFFFF;
+  --bg-sidebar: #FAFBFC;
+  --bg-hover:   #EFF1F5;
+  --bg-active:  #E5E9F0;
+  --bg-muted:   #F5F6F8;
+
+  /* ── Borders ── */
+  --border:        #DFE3EB;
+  --border-strong: #C8CDD8;
+
+  /* ── Text ── */
+  --text-primary:   #111827;
+  --text-secondary: #4B5563;
+  --text-muted:     #9CA3AF;
+
+  /* ── Shadows ── */
+  --shadow-sm:   0 1px 2px rgba(0,0,0,.05);
+  --shadow:      0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+  --shadow-lg:   0 4px 24px rgba(0,0,0,.1);
+  --shadow-card: 0 1px 3px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.03);
+
+  /* ── Accent — Electric blue ── */
+  --accent:        #2563EB;
+  --accent-light:  #60A5FA;
+  --accent-dim:    rgba(37,99,235,.06);
+  --accent-bg:     rgba(37,99,235,.04);
+  --border-accent: rgba(37,99,235,.20);
+
+  /* ── Semantic — Status ── */
+  --green:       #059669;
+  --green-dim:   rgba(5,150,105,.08);
+  --green-light: #D1FAE5;
+
+  --amber:       #D97706;
+  --amber-dim:   rgba(217,119,6,.08);
+  --amber-light: #FEF3C7;
+
+  --red:       #DC2626;
+  --red-dim:   rgba(220,38,38,.06);
+  --red-light: #FEE2E2;
+
+  --orange: #EA580C;
+  --purple: #7C3AED;
+  --purple-dim: rgba(124,58,237,.06);
+
+  /* ── Directional — Power System ── */
+  --prelev:        #E11D48;
+  --prelev-dim:    rgba(225,29,72,.06);
+  --prelev-mid:    rgba(225,29,72,.14);
+  --prelev-text:   #9F1239;
+  --prelev-border: rgba(225,29,72,.20);
+
+  --inj:        #0D9488;
+  --inj-dim:    rgba(13,148,136,.06);
+  --inj-mid:    rgba(13,148,136,.14);
+  --inj-text:   #115E59;
+  --inj-border: rgba(13,148,136,.20);
+
+  /* ── Chart ── */
+  --chart-grid: rgba(0,0,0,.05);
+  --chart-text: #9CA3AF;
+
+  --bar-base:         rgba(37,99,235,.40);
+  --bar-prelev-ferme: rgba(225,29,72,.65);
+  --bar-prelev-flex:  rgba(217,119,6,.50);
+  --bar-inj-base:     rgba(13,148,136,.45);
+  --bar-inj-ferme:    rgba(13,148,136,.75);
+  --bar-inj-flex:     rgba(13,148,136,.35);
+
+  /* ── Navy legacy compat ── */
+  --navy:    #2563EB;
+  --navy-10: rgba(37,99,235,.06);
+  --navy-20: rgba(37,99,235,.14);
+  --navy-60: rgba(37,99,235,.55);
+
+  --slate: #F5F6F8;
+  --cyan-sem: #0891B2;
+  --cyan-dim: rgba(8,145,178,.06);
+  --pn-bg: #FFFBEB; --pn-border: #FDE68A; --pn-text: #78350F;
+
+  /* ── Fonts ── */
+  --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+}
+
+/* ─── Dark mode ─────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-base:    #0C111D;
+  --bg-surface: #151B2B;
+  --bg-raised:  #1A2035;
+  --bg-sidebar: #0F1423;
+  --bg-hover:   #1E2640;
+  --bg-active:  #263050;
+  --bg-muted:   #171D2D;
+
+  --border:        rgba(255,255,255,.08);
+  --border-strong: rgba(255,255,255,.14);
+
+  --text-primary:   #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted:     #64748B;
+
+  --shadow-sm:   0 1px 2px rgba(0,0,0,.4);
+  --shadow:      0 2px 8px rgba(0,0,0,.5);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,.6);
+  --shadow-card: 0 1px 4px rgba(0,0,0,.3);
+
+  --accent:        #60A5FA;
+  --accent-light:  #93C5FD;
+  --accent-dim:    rgba(96,165,250,.10);
+  --accent-bg:     rgba(96,165,250,.05);
+  --border-accent: rgba(96,165,250,.20);
+
+  --green:       #10B981;
+  --green-dim:   rgba(16,185,129,.10);
+  --green-light: rgba(16,185,129,.12);
+
+  --amber:       #F59E0B;
+  --amber-dim:   rgba(245,158,11,.10);
+  --amber-light: rgba(245,158,11,.10);
+
+  --red:       #EF4444;
+  --red-dim:   rgba(239,68,68,.10);
+  --red-light: rgba(239,68,68,.10);
+
+  --orange: #FB923C;
+  --purple: #A78BFA;
+  --purple-dim: rgba(167,139,250,.10);
+
+  --prelev:        #FB7185;
+  --prelev-dim:    rgba(251,113,133,.08);
+  --prelev-mid:    rgba(251,113,133,.16);
+  --prelev-text:   #FDA4AF;
+  --prelev-border: rgba(251,113,133,.22);
+
+  --inj:        #2DD4BF;
+  --inj-dim:    rgba(45,212,191,.08);
+  --inj-mid:    rgba(45,212,191,.16);
+  --inj-text:   #5EEAD4;
+  --inj-border: rgba(45,212,191,.22);
+
+  --chart-grid: rgba(255,255,255,.04);
+  --chart-text: #64748B;
+
+  --bar-base:         rgba(96,165,250,.35);
+  --bar-prelev-ferme: rgba(251,113,133,.60);
+  --bar-prelev-flex:  rgba(245,158,11,.45);
+  --bar-inj-base:     rgba(45,212,191,.40);
+  --bar-inj-ferme:    rgba(45,212,191,.70);
+  --bar-inj-flex:     rgba(45,212,191,.30);
+
+  --navy: #93C5FD; --navy-10: rgba(147,197,253,.08); --navy-20: rgba(147,197,253,.16); --navy-60: rgba(147,197,253,.50);
+  --slate: #171D2D;
+  --pn-bg: rgba(245,158,11,.08); --pn-border: rgba(245,158,11,.18); --pn-text: #FBBF24;
+}
+
+/* ═══ Reset ═══ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  height: 100vh;
+  transition: background .25s, color .25s;
+}
+.mono { font-family: var(--font-mono); }
+::selection { background: rgba(37,99,235,.18); }
+
+/* ═══ Animations ═══ */
+.fade-in    { animation: go-fadeUp .22s ease; }
+.slide-down { animation: go-slideDown .18s ease; }
+
+@keyframes go-fadeIn      { from { opacity: 0 } to { opacity: 1 } }
+@keyframes go-fadeUp      { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+@keyframes go-slideDown   { from { opacity: 0; transform: translateY(-6px) } to { opacity: 1; transform: none } }
+@keyframes go-slideInRight { from { transform: translateX(100%) } to { transform: none } }
+@keyframes go-scaleIn     { from { opacity: 0; transform: scale(.97) } to { opacity: 1; transform: none } }
+@keyframes v3-fadeIn      { from { opacity: 0 } to { opacity: 1 } }
+@keyframes v3-fadeUp      { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+@keyframes v3-slideDown   { from { opacity: 0; transform: translateY(-8px) } to { opacity: 1; transform: none } }
+@keyframes v3-slideInRight { from { transform: translateX(100%) } to { transform: none } }
+@keyframes v3-scaleIn     { from { opacity: 0; transform: scale(0.96) } to { opacity: 1; transform: none } }
+@keyframes slideIn        { from { transform: translateX(20px); opacity: 0 } to { transform: none; opacity: 1 } }
+@keyframes slideInRight   { from { transform: translateX(100%) } to { transform: none } }
+@keyframes fadeIn         { from { opacity: 0 } to { opacity: 1 } }
+@keyframes pulse-led      { 0%, 100% { opacity: 1 } 50% { opacity: .5 } }
+
+/* Stagger animation */
+.stagger-item { animation: go-fadeUp .25s ease backwards; }
