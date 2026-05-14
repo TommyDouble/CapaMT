@@ -109,19 +109,6 @@ select.input-field { cursor: pointer; }
   font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px;
   background: var(--red-dim); color: var(--red); border: 1px solid rgba(220,38,38,.2);
 }
-.migration-badge {
-  position: relative; font-size: 9px; font-weight: 700; padding: 1px 6px;
-  border-radius: 4px; background: var(--amber-dim); color: var(--amber);
-  border: 1px solid rgba(217,119,6,.2); cursor: help;
-}
-.migration-tooltip {
-  display: none; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
-  background: var(--bg-raised); border: 1px solid var(--border); border-radius: 6px;
-  padding: 8px 12px; font-size: 10px; color: var(--text-primary); width: 220px;
-  box-shadow: var(--shadow-lg); z-index: 50; white-space: normal;
-}
-.migration-badge:hover .migration-tooltip { display: block; }
-
 /* ── Detail tabs ── */
 .detail-tabs {
   display: flex; border-bottom: 1px solid var(--border);
@@ -380,11 +367,11 @@ select.input-field { cursor: pointer; }
 
 /* ── Saturation tooltip ── */
 .sat-tooltip {
-  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  position: fixed;
   background: var(--bg-raised); border: 1px solid var(--border);
-  border-radius: 6px; padding: 8px 10px; z-index: 50; width: 200px;
+  border-radius: 6px; padding: 8px 10px; z-index: 3000; width: 220px;
   box-shadow: var(--shadow-lg); font-size: 10px; color: var(--text-primary);
-  text-align: left; margin-bottom: 4px; pointer-events: none;
+  text-align: left; pointer-events: none;
 }
 
 /* ── Summary cards (EvolutionTab) ── */
@@ -502,7 +489,49 @@ select.input-field { cursor: pointer; }
 .power-label-inj-r { font-size: 10px; font-weight: 700; color: var(--inj); text-transform: uppercase; letter-spacing: .06em; }
 .power-label-inj-p { font-size: 10px; font-weight: 700; color: var(--inj); text-transform: uppercase; letter-spacing: .06em; opacity: .7; }
 
-/* ── Utility classes (Tailwind-compatible) ── */
+/* ── Queue action tooltip ── */
+.queue-action {
+  position: relative;
+  outline: none;
+}
+.queue-action-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  position: fixed;
+  width: max-content;
+  max-width: 300px;
+  z-index: 3000;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-lg);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+  pointer-events: none;
+}
+.queue-action-tooltip__title {
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.queue-action-tooltip__list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.queue-action-tooltip__note {
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  padding-top: 7px;
+}
+
+/* ── Local utility classes ── */
 .flex { display: flex; } .flex-1 { flex: 1; } .flex-col { flex-direction: column; }
 .flex-wrap { flex-wrap: wrap; } .flex-shrink-0 { flex-shrink: 0; }
 .items-center { align-items: center; } .items-start { align-items: flex-start; }

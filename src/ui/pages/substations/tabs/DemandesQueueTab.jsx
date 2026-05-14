@@ -6,43 +6,35 @@
  * Original: 548 lines → Now: ~280 lines
  */
 import React, { useState } from 'react';
-import { YEARS, DECISION_CONFIG } from '../../../../constants/index.js';
-import { f1, uid } from '../../../../utils/format.js';
-import { safeNum } from '../../../../utils/numbers.js';
+import { CONNECTED_RETENTION_DEFAULT_MONTHS, YEARS, DECISION_CONFIG } from '../../../../constants/index.js';
+import { f1 } from '../../../../utils/format.js';
 import { useProjects } from '../../../App.jsx';
 import { getCapacityAtYear } from '../../../../engines/capacity.js';
-import { getWithdrawalBaseNet } from '../../../../engines/load.js';
-import { getResidualWithdrawalRigid, getResidualInjectionRigid } from '../../../../engines/directionalSubstation.js';
+import { getWithdrawalBaseNet, getResidualWithdrawalRigid, getResidualInjectionRigid } from '../../../../engines/directionalSubstation.js';
 import {
-  getQueueAnalysis, getExpiryInfo,
-  reqGrdPrelevFerme, reqGrdPrelevFlexible, reqGrdInjFerme, reqGrdInjFlexible,
+  getQueueAnalysis,
+  reqGrdInjFerme,
   getEffectiveRigidReservation,
 } from '../../../../engines/queue.js';
-import { DecisionBadge, ExpiryChip, Tag } from '../../../shared/badges.jsx';
+import { getCapacityImpact } from '../../../../engines/requests.js';
+import { normalizeRequest, getCustomer, getOffer } from '../../../../engines/requestModel.js';
+import { DecisionBadge, ExpiryChip, StatusPhaseBadge, Tag } from '../../../shared/badges.jsx';
 import { ArchiveModal } from './ArchiveModal.jsx';
 import { QueueRow } from './components/QueueRow.jsx';
 
-// ── Small power badge (for completed connections) ─────────────────────────────
-function SmallPower({ label, v, color, signed }) {
-  return (
-    <div style={{ textAlign: 'center', padding: '5px 10px', background: 'var(--bg-raised)',
-      border: `1px solid ${color}33`, borderRadius: 8, minWidth: 72 }}>
-      <p style={{ fontSize: 8, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 2 }}>{label}</p>
-      <p style={{ fontSize: 14, fontWeight: 800, fontFamily: 'var(--font-mono)', color }}>
-        {signed && v >= 0 ? '+' : ''}{f1(v)} <span style={{ fontSize: 9, fontWeight: 400 }}>MVA</span>
-      </p>
-    </div>
-  );
-}
-
-export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate }) {
+export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate, onNavigateToRequest }) {
   const projects = useProjects();
   const { queue, conditionals, cancelled, fifoAlerts } = getQueueAnalysis(sub, projects);
   const [archiveModal, setArchiveModal] = useState(null);
-  const [chargeContrib, setChargeContrib] = useState({ prelevMW: '', injMW: '', note: '', effectYear: '' });
 
   // KPIs
-  const allActive = sub.connectionRequests.filter(r => r.status !== 'annulée' && r.status !== 'annulé');
+  const drafts = (sub.connectionRequests || []).filter(r => {
+    const impact = getCapacityImpact(r);
+    return impact === 'NONE'
+      && getCustomer(r).status === 'incomplete'
+      && !(r.conditionedOnProjectIds?.length > 0);
+  });
+  const allActive = sub.connectionRequests.filter(r => getOffer(r).status !== 'offer_cancelled');
   const totalWFerme = queue.reduce((s, i) => s + getEffectiveRigidReservation(i.req), 0);
   const totalIFerme = queue.reduce((s, i) => s + reqGrdInjFerme(i.req), 0);
   const resW2026 = getResidualWithdrawalRigid(sub, 2026, projects);
@@ -53,7 +45,7 @@ export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate }) {
   const sparkVals = YEARS.map(y => {
     const cap = getCapacityAtYear(sub, y, projects);
     const base = getWithdrawalBaseNet(sub, y, projects);
-    return +(cap - base - queue.filter(i => (i.req.yearSouhaitee || i.req.year || 2026) <= y)
+    return +(cap - base - queue.filter(i => (getCustomer(i.req).requested?.year || 2026) <= y)
       .reduce((s, i) => s + getEffectiveRigidReservation(i.req), 0)).toFixed(1);
   });
   const spMin = Math.min(...sparkVals), spMax = Math.max(...sparkVals, 0.1);
@@ -64,39 +56,28 @@ export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate }) {
   // Archive handlers
   const handleArchive = (req, targetStatus) => {
     setArchiveModal({ req, targetStatus });
-    setChargeContrib({
-      prelevMW: reqGrdPrelevFerme(req) > 0 ? String(reqGrdPrelevFerme(req)) : '',
-      injMW: reqGrdInjFerme(req) > 0 ? String(reqGrdInjFerme(req)) : '',
-      note: `Raccordement ${req.name}`,
-      effectYear: String(req.yearSouhaitee || req.year || new Date().getFullYear()),
-    });
   };
 
   const confirmArchive = () => {
     if (!archiveModal) return;
     const { req, targetStatus } = archiveModal;
     const today = new Date().toISOString().slice(0, 10);
-    const updatedReqs = sub.connectionRequests.map(r =>
-      r.id === req.id ? { ...r, status: targetStatus, raccordementDate: targetStatus === 'raccordée' ? today : r.raccordementDate } : r
-    );
-    let chargeHistory = [...(sub.chargeHistory || [])];
-    if (targetStatus === 'raccordée') {
-      const _pMW = parseFloat(chargeContrib.prelevMW);
-      const _iMW = parseFloat(chargeContrib.injMW);
-      chargeHistory.push({
-        id: uid(), date: today,
-        effectYear: parseInt(chargeContrib.effectYear) || (req.yearSouhaitee || req.year || new Date().getFullYear()),
-        includeInBase: true,
-        prelevMW: safeNum(isFinite(_pMW) ? _pMW : reqGrdPrelevFerme(req), 0),
-        injMW: safeNum(isFinite(_iMW) ? _iMW : 0, 0),
-        note: chargeContrib.note || `Raccordement ${req.name}`,
-        reqId: req.id,
-        contract: { prelevFerme: reqGrdPrelevFerme(req), prelevFlexible: reqGrdPrelevFlexible(req),
-          injFerme: reqGrdInjFerme(req), injFlexible: reqGrdInjFlexible(req),
-          decisionGRD: req.grd?.decisionGRD, noteDecision: req.grd?.noteDecision },
-      });
-    }
-    onUpdate({ ...sub, connectionRequests: updatedReqs, chargeHistory });
+    const updatedReqs = sub.connectionRequests.map(r => {
+      if (r.id !== req.id) return r;
+      const offer = getOffer(r);
+      const patch = targetStatus === 'raccordée'
+        ? {
+            status: 'offer_connected',
+            connectedAt: today,
+            connectedRetentionMonths: offer.connectedRetentionMonths ?? CONNECTED_RETENTION_DEFAULT_MONTHS,
+          }
+        : { status: 'offer_cancelled', cancelledAt: today };
+      return normalizeRequest({
+        ...r,
+        offer: { ...offer, ...patch },
+      }, sub.id);
+    });
+    onUpdate({ ...sub, connectionRequests: updatedReqs });
     setArchiveModal(null);
   };
 
@@ -108,7 +89,7 @@ export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate }) {
           <p style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--amber)', marginBottom: 6 }}>⚠ Ordre FIFO non respecté</p>
           {fifoAlerts.map((a, i) => (
             <p key={i} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              <strong>{a.req.name}</strong> est étudiée alors que <strong>{a.blockedBy.map(r => r.name).join(', ')}</strong> {a.blockedBy.length > 1 ? 'sont' : 'est'} encore en étude (dépôt antérieur).
+              <strong>{getCustomer(a.req).client?.name}</strong> est étudiée alors que <strong>{a.blockedBy.map(r => getCustomer(r).client?.name).join(', ')}</strong> {a.blockedBy.length > 1 ? 'sont' : 'est'} encore en étude (dépôt antérieur).
             </p>
           ))}
         </div>
@@ -166,7 +147,7 @@ export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate }) {
           <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--amber)', marginBottom: 6 }}>Réservations à traiter</p>
           {expAlerts.map(item => (
             <div key={item.req.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-              <span style={{ fontSize: 12, fontWeight: 500 }}>{item.req.name}</span>
+              <span style={{ fontSize: 12, fontWeight: 500 }}>{getCustomer(item.req).client?.name}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <ExpiryChip expiry={item.expiry} />
                 <button className="btn-edit-link" style={{ fontSize: 11 }} onClick={() => onEdit(item.req)}>Traiter →</button>
@@ -202,14 +183,15 @@ export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate }) {
             </tr>
           </thead>
           <tbody>
-            {queue.length === 0 && conditionals.length === 0 && (
+            {queue.length === 0 && conditionals.length === 0 && drafts.length === 0 && (
               <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: 13 }}>
                 Aucune demande active. Cliquez « + Nouvelle demande » pour commencer.
               </td></tr>
             )}
             {queue.map(item => (
               <QueueRow key={item.req.id} item={item}
-                onEdit={onEdit} onArchive={handleArchive} onDelete={onDelete} />
+                onEdit={onEdit} onArchive={handleArchive} onDelete={onDelete}
+                onOpenDossier={onNavigateToRequest ? () => onNavigateToRequest(sub.id, item.req.id) : null} />
             ))}
 
             {/* Conditionals */}
@@ -225,15 +207,43 @@ export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate }) {
                 <tr key={item.req.id} className="data-row" style={{ opacity: .65 }}>
                   <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 13, padding: '8px 10px' }}>—</td>
                   <td style={{ padding: '8px 10px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{item.req.name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{getCustomer(item.req).client?.name}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
-                      <Tag v={item.req.type} /><Tag v={item.req.status} />
+                      <Tag v={getCustomer(item.req).client?.type} />
                     </div>
                   </td>
                   <td colSpan={4} />
                   <td style={{ textAlign: 'center', padding: '8px 8px' }}><DecisionBadge decision="conditionnel" size="xs" /></td>
                   <td style={{ textAlign: 'right', paddingRight: 12 }}>
                     <button className="btn-edit-link" style={{ fontSize: 11 }} onClick={() => onEdit(item.req)}>Modifier</button>
+                  </td>
+                </tr>
+              ))}
+            </>}
+
+            {/* Brouillons */}
+            {drafts.length > 0 && <>
+              <tr>
+                <td colSpan={8} style={{ padding: '7px 18px', background: 'var(--bg-muted)',
+                  borderTop: '1px solid var(--border)', fontSize: 9, fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text-muted)' }}>
+                  Brouillons — à compléter
+                </td>
+              </tr>
+              {drafts.map(req => (
+                <tr key={req.id} className="data-row" style={{ opacity: .6 }}>
+                  <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 13, padding: '8px 10px' }}>—</td>
+                  <td style={{ padding: '8px 10px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', fontStyle: 'italic' }}>{getCustomer(req).client?.name || '(sans titre)'}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
+                      <Tag v={getCustomer(req).client?.type} />
+                      <StatusPhaseBadge req={req} size="xs" />
+                    </div>
+                  </td>
+                  <td colSpan={5} />
+                  <td style={{ textAlign: 'right', paddingRight: 12 }}>
+                    <button className="btn-edit-link" style={{ fontSize: 11 }} onClick={() => onEdit(req)}>Modifier</button>
+                    <button className="btn-danger-link" style={{ fontSize: 11, marginLeft: 8 }} onClick={() => onDelete(req)}>Suppr.</button>
                   </td>
                 </tr>
               ))}
@@ -253,51 +263,6 @@ export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate }) {
         </div>
       </div>
 
-      {/* Completed connections */}
-      {(() => {
-        const raccordées = sub.connectionRequests.filter(r => r.status === 'raccordée' || r.status === 'raccordé');
-        if (!raccordées.length) return null;
-        return (
-          <details open>
-            <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '.06em', color: 'var(--inj-text)', padding: '8px 0', listStyle: 'none',
-              display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--inj)', display: 'inline-block' }} />
-              Raccordements effectués ({raccordées.length})
-            </summary>
-            <div className="card" style={{ marginTop: 8, overflow: 'hidden', border: '1.5px solid var(--inj-border)', background: 'var(--inj-dim)' }}>
-              {raccordées.map((req, i) => {
-                const hist = (sub.chargeHistory || []).find(h => h.reqId === req.id && h.includeInBase);
-                const grdPF = reqGrdPrelevFerme(req), grdFl = reqGrdPrelevFlexible(req);
-                const grdIF = reqGrdInjFerme(req), grdIFl = reqGrdInjFlexible(req);
-                const net = hist ? (hist.prelevMW - hist.injMW) : (grdPF - grdIF);
-                return (
-                  <div key={req.id} style={{ padding: '12px 16px', borderBottom: i < raccordées.length - 1 ? '1px solid var(--inj-border)' : 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                      <div style={{ flex: 1, minWidth: 160 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--inj-text)' }}>{req.name}</span>
-                          <Tag v={req.type} />
-                        </div>
-                        <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                          Raccordé le {req.raccordementDate || '—'}
-                        </p>
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                        {grdPF > 0 && <SmallPower label="Prél. ferme" v={grdPF} color="var(--prelev)" />}
-                        {grdFl > 0 && <SmallPower label="Prél. flex." v={grdFl} color="var(--amber)" />}
-                        {grdIF > 0 && <SmallPower label="Inj. garanti" v={grdIF} color="var(--inj)" />}
-                        {hist?.effectYear && <SmallPower label={`Δ base dès ${hist.effectYear}`} v={net} color={net >= 0 ? 'var(--prelev)' : 'var(--inj)'} signed />}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </details>
-        );
-      })()}
-
       {/* Cancelled */}
       {cancelled.length > 0 && (
         <details>
@@ -311,9 +276,9 @@ export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate }) {
               <div key={item.req.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>✕</span>
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'line-through' }}>{item.req.name}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'line-through' }}>{getCustomer(item.req).client?.name}</span>
                 </div>
-                <Tag v={item.req.type} />
+                <Tag v={getCustomer(item.req).client?.type} />
                 <button className="btn-edit-link" style={{ fontSize: 11 }} onClick={() => onEdit(item.req)}>Réactiver</button>
               </div>
             ))}
@@ -324,9 +289,6 @@ export function DemandesQueueTab({ sub, onAdd, onEdit, onDelete, onUpdate }) {
       {/* Archive modal */}
       <ArchiveModal
         archiveModal={archiveModal}
-        chargeContrib={chargeContrib}
-        setChargeContrib={setChargeContrib}
-        sub={sub}
         onConfirm={confirmArchive}
         onCancel={() => setArchiveModal(null)}
       />

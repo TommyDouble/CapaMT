@@ -3,6 +3,7 @@
  * Extracted from EvolutionTab.
  */
 import React, { useRef, useEffect } from 'react';
+import Chart from 'chart.js/auto';
 import { YEARS } from '../../../../../constants/index.js';
 import { f1, pct } from '../../../../../utils/format.js';
 import {
@@ -18,6 +19,26 @@ import {
 import { getChartTheme } from '../../../../shared/chartTheme.js';
 
 const ALERT_LEVEL = r => r >= 1.0 ? 'critical' : r >= 0.85 ? 'warning' : r >= 0.70 ? 'caution' : 'ok';
+
+export function buildDirectionalTooltipOptions(t) {
+  return {
+    backgroundColor: t.bgRaised,
+    titleColor: t.textPrimary,
+    bodyColor: t.textSecondary || t.textPrimary,
+    footerColor: t.textMuted,
+    borderColor: t.border,
+    borderWidth: 1,
+    padding: 12,
+    boxPadding: 4,
+    cornerRadius: 10,
+    caretPadding: 8,
+    titleFont: { family: t.fontMono, weight: '700', size: 12 },
+    bodyFont: { family: t.fontMono, size: 11 },
+    callbacks: {
+      labelTextColor: () => t.textPrimary,
+    },
+  };
+}
 
 export function ChartLegend({ view, mode }) {
   const isW = view === 'withdrawal';
@@ -127,9 +148,10 @@ export function DirectionalChart({ sub, projects, view, mode, activeYear, onSele
     const yPad = (rawMax - rawMin) * 0.14 || 8;
     const yMax = rawMax + yPad, yMin = rawMin < 0 ? rawMin - yPad : 0;
     const isW_outer = isW, activeYear_outer = activeYear;
+    const tooltipOptions = buildDirectionalTooltipOptions(t);
 
     try {
-      chartRef.current = new window.Chart(ctx, {
+      chartRef.current = new Chart(ctx, {
         type: 'bar',
         data: { labels: YEARS, datasets: [...barDatasets, ...lineDatasets] },
         options: {
@@ -149,12 +171,9 @@ export function DirectionalChart({ sub, projects, view, mode, activeYear, onSele
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: 'var(--bg-raised,#fff)', titleColor: 'var(--text-primary,#1a1230)',
-              bodyColor: 'var(--text-secondary,#4a4162)', borderColor: 'var(--border,#e8e2f0)', borderWidth: 1,
-              padding: 12, boxPadding: 4, cornerRadius: 10,
-              titleFont: { family: 'JetBrains Mono, monospace', weight: '700', size: 12 },
-              bodyFont: { family: 'JetBrains Mono, monospace', size: 11 },
+              ...tooltipOptions,
               callbacks: {
+                ...tooltipOptions.callbacks,
                 title: ([item]) => `${YEARS[item.dataIndex]} · ${isW_outer ? '⬆ Prélèvement' : '⬇ Injection'}`,
                 label: (ctx) => {
                   const v = ctx.parsed.y;

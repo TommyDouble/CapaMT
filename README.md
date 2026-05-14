@@ -1,99 +1,120 @@
-# RESA — Planification Capacité Réseau
+# RESA - Planification Capacite Reseau
 
-Application de planification de la capacité des sous-stations HTB/HTA pour la Province de Liège (2026–2035).
+Application de planification de la capacite des sous-stations HTB/HTA pour la Province de Liege, avec file d'attente, evaluation technique directionnelle, suivi CAPAC et cycle offre/raccordement.
 
 ## Commandes
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # Vitest — 151 tests
+npm test           # Vitest
 npm run test:watch # watch mode
 npm run build      # dist/ statique
-npm run preview    # prévisualiser le build
+npm run preview    # previsualiser le build
 ```
+
+## Etat du projet
+
+- Application Vite + React, logique metier isolee dans `src/engines/`.
+- Modele dossier canonique: `customer`, `assessment`, `offer`, `capacityImpact`.
+- Persistance locale en **v11**. Les sessions pre-v11 sont ignorees volontairement pour repartir d'un jeu d'exemple propre.
+- `node_modules/`, `dist/`, `.DS_Store` et les caches locaux sont ignores par Git.
 
 ## Architecture
 
-```
+```text
 resa-capacite/
-├── index.html              Point d'entrée Vite
+├── index.html
 ├── package.json
 ├── vite.config.js          Config Vite + Vitest (jsdom)
+├── README.md
 │
 ├── src/
 │   ├── main.jsx            Bootstrap React (createRoot)
-│   ├── constants/index.js  YEARS, ALERT_CONFIG, SCENARIO_CONFIG, FOISON_DEFAULTS…
-│   ├── data/initial.js     Données initiales SS et projets (6 SS Province de Liège)
+│   ├── constants/
+│   │   ├── index.js        YEARS, alertes, profils d'etude, foisonnement
+│   │   └── workflowActions.js
+│   ├── data/initial.js     Donnees initiales SS et projets reseau
 │   │
 │   ├── utils/
 │   │   ├── numbers.js      safeNum, safeDiv
 │   │   ├── dates.js        getToday
-│   │   ├── format.js       f1, pct, uid, fmtDate, statusLabel
-│   │   └── normalize.js    normalizeSubstations, normalizeProjects
+│   │   ├── format.js       formatteurs UI
+│   │   └── normalize.js    normalisation SS, projets, demandes
 │   │
-│   ├── engines/            Logique métier — aucune dépendance React, testable en isolation
-│   │   ├── capacity.js     calcCapacityN/N1, getCapacityAtYear, getEffectiveTfoConfig
-│   │   ├── project.js      getEffectiveBaseLoad (load_transfer)
-│   │   ├── requests.js     Accesseurs req.client/grd, réservations effectives
-│   │   ├── load.js         getOrganicLoad, getNetLoad*, getResidual*, alertes
-│   │   ├── queue.js        getQueueAnalysis, getGlobalQueueStats, getExpiryInfo
-│   │   ├── recommendation.js  computeRecommendation — split ferme/flexible GRD
-│   │   └── projectEffects.js  computeEffectsFromBlocks — blocs wizard → effets projet
+│   ├── engines/            Logique metier pure, testable hors React
+│   │   ├── requestModel.js       Accesseurs et normalisation canonique
+│   │   ├── capacitySplit.js      Splits permanent/flexible
+│   │   ├── capacityImpact.js     Reservation active, liberee, raccordee
+│   │   ├── capacityEvaluation.js Evaluation amont/poste/reseau/finale
+│   │   ├── workflowRules.js      Guards workflow client/etude/offre
+│   │   ├── queueCockpit.js       Agregation file globale actionnable
+│   │   ├── queueOrdering.js      Priorite FIFO
+│   │   ├── dataQuality.js        Warnings et niveau de confiance
+│   │   ├── queue.js              Analyse file par sous-station
+│   │   ├── requests.js           Accesseurs et conditions projet
+│   │   ├── alerts.js             Niveaux d'alerte directionnels
+│   │   ├── directionalSubstation.js
+│   │   └── projectEffects.js
 │   │
-│   ├── services/storage.js saveState, loadState, hydrateInitialAppState,
-│   │                       exportJSON/CSV, importJSONFile
+│   ├── services/storage.js Persistance, import/export JSON/CSV
 │   │
 │   └── ui/
-│       ├── App.jsx          Orchestrateur (~179 lignes) : navigation, états globaux,
-│       │                    autosave, handlers inter-pages. Aucun calcul métier.
-│       ├── AppHeader.jsx    Header + nav + badges + toggle scénario
-│       ├── shared/
-│       │   ├── badges.jsx   AlertBadge, DecisionBadge, ExpiryChip, Pill, Tag
-│       │   ├── charts.jsx   DualUtilBar, DualCellBadge, ResidualMiniBar, ScenarioToggle
-│       │   ├── forms.jsx    FormRow, Section, DetailInjEditor, DetailPrevEditor, PowerFields
-│       │   └── ExportImportMenu.jsx
+│       ├── App.jsx         Orchestrateur React, navigation, autosave
+│       ├── hooks/          Navigation et raccourcis clavier
+│       ├── shell/          Sidebar, topbar, theme
+│       ├── shared/         Badges, charts, formulaires, modales
 │       └── pages/
-│           ├── overview/OverviewPage.jsx
+│           ├── overview/
+│           ├── queue/      Cockpit global de file d'attente
+│           ├── requests/   Page dossier + workflow client/etude/offre
 │           ├── substations/
-│           │   ├── SubstationListPage.jsx
-│           │   ├── SubstationDetail.jsx
-│           │   ├── EditRequestPanel.jsx
-│           │   ├── EditSubstationPanel.jsx
-│           │   └── tabs/  EvolutionTab  DemandesQueueTab  ChargeHistoryTab  InvestissementsTab
-│           ├── queue/GlobalQueuePage.jsx
-│           ├── projects/NetworkProjectsPage.jsx  (wizard renforcement/création/suppression)
-│           └── intake/SaisiePage.jsx
+│           ├── projects/
+│           └── intake/
 │
 └── tests/
+    ├── engines/            Tests unitaires metier
+    ├── pages/              Smoke tests React par ecran
+    ├── services/
     ├── smoke/
-    │   ├── app.render.test.jsx   Rendu React minimal de App
-    │   └── assembly.test.js      Imports, wiring moteurs, storage
-    ├── engines/  capacity  load  queue  recommendation  projectEffects
-    ├── services/ storage
-    └── utils/    numbers
+    └── utils/
 ```
 
-## Rôle de App.jsx
+## Rôle de `App.jsx`
 
-`App.jsx` est un orchestrateur de ~179 lignes. Il contient :
-- lecture unique du storage via `hydrateInitialAppState()`
-- 6 états globaux : `substations`, `networkProjects`, `activityLog`, `scenario`, navigation, banner session
-- handlers de coordination inter-pages (`handleUpdate`, `handleSaisieSubmit`, `handleImport`…)
-- autosave via `useEffect`
-- rendu conditionnel des 6 pages
+`App.jsx` reste l'orchestrateur principal. Il contient :
 
-Il ne contient aucun calcul métier, aucun formulaire, aucun détail d'écran.
+- hydratation initiale via `hydrateInitialAppState()`;
+- etats globaux: sous-stations, projets reseau, journal d'activite, banniere de session;
+- navigation centralisee via `useNavigation()`;
+- autosave local;
+- handlers de coordination entre pages;
+- rendu conditionnel des vues principales.
+
+Les calculs metier restent dans `src/engines/`.
 
 ## Où ajouter du code
 
 | Besoin | Où |
 |---|---|
 | Nouveau calcul métier | `src/engines/` + test dans `tests/engines/` |
-| Nouvel écran | `src/ui/pages/` (appelle les engines, n'en recrée pas) |
-| Nouvelle constante partagée | `src/constants/index.js` |
+| Nouvel écran | `src/ui/pages/` (appelle les engines, ne recrée pas les calculs) |
+| Nouveau composant partagé | `src/ui/shared/` ou sous-composant de page |
+| Nouvelle constante partagée | `src/constants/` |
 | Changer le format de persistance | `src/services/storage.js` (bumper `STORAGE_VERSION`) |
 
 ## Format de persistance
 
-Version courante : **v5** — `{ version, savedAt, substations, networkProjects, activityLog, scenario }`
+Version courante : **v11**.
+
+```js
+{
+  version,
+  savedAt,
+  substations,
+  networkProjects,
+  activityLog
+}
+```
+
+Les imports pre-v11 ne sont pas migres automatiquement: la refonte repart sur des donnees d'exemple normalisees.

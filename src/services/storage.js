@@ -2,8 +2,9 @@
  * services/storage.js
  * Source unique de vérité pour la persistance.
  *
- * Format v6 : { version, savedAt, substations, networkProjects, activityLog }
- * Migration v5→v6 : suppression du champ `scenario`, ajout de directionalModel
+ * Format v11 : { version, savedAt, substations, networkProjects, activityLog }
+ * Les sessions pré-v11 sont volontairement ignorées : la refonte repart sur
+ * des données d'exemple propres.
  */
 
 import { STORAGE_KEY, YEARS } from '../constants/index.js';
@@ -18,8 +19,7 @@ import {
 } from '../engines/directionalSubstation.js';
 import { getCapacityAtYear } from '../engines/capacity.js';
 
-const STORAGE_VERSION = 6;
-const LEGACY_KEY_V5   = 'resa_planif_v5';
+const STORAGE_VERSION = 11;
 
 // ── Persistance locale ──────────────────────────────────────────────────────
 
@@ -37,36 +37,12 @@ export function saveState(substations, networkProjects, activityLog) {
 
 export function loadState() {
   try {
-    // Try v6 first
-    let raw = localStorage.getItem(STORAGE_KEY);
-
-    // Fallback: try to migrate v5 data
-    if (!raw) {
-      const rawV5 = localStorage.getItem(LEGACY_KEY_V5);
-      if (rawV5) {
-        raw = rawV5;
-      }
-    }
+    const raw = localStorage.getItem(STORAGE_KEY);
 
     if (!raw) return null;
     const d = JSON.parse(raw);
 
-    // Handle v5 → v6 migration
-    if (!d.version || d.version < STORAGE_VERSION) {
-      // v5 had `scenario` field — drop it silently
-      const migrated = {
-        version:        STORAGE_VERSION,
-        savedAt:        d.savedAt || new Date().toISOString(),
-        substations:    normalizeSubstations(d.substations || []),
-        networkProjects: normalizeProjects(d.networkProjects || []),
-        activityLog:    Array.isArray(d.activityLog) ? d.activityLog : [],
-      };
-      // Persist migrated data in new key
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated)); } catch (_) {}
-      // Remove old v5 key if present
-      try { localStorage.removeItem(LEGACY_KEY_V5); } catch (_) {}
-      return migrated;
-    }
+    if (!d.version || d.version < STORAGE_VERSION) return null;
 
     if (d.substations)     d.substations    = normalizeSubstations(d.substations);
     if (d.networkProjects) d.networkProjects = normalizeProjects(d.networkProjects);
@@ -81,8 +57,8 @@ export function loadState() {
 export function hydrateInitialAppState() {
   const saved = loadState();
   return {
-    substations:     saved?.substations     || INITIAL_SUBSTATIONS,
-    networkProjects: saved?.networkProjects  || INITIAL_NETWORK_PROJECTS,
+    substations:     saved?.substations     || normalizeSubstations(INITIAL_SUBSTATIONS),
+    networkProjects: saved?.networkProjects  || normalizeProjects(INITIAL_NETWORK_PROJECTS),
     activityLog:     saved?.activityLog     || [],
     savedAt:         saved?.savedAt         || null,
     hasSession:      !!saved,
@@ -91,7 +67,6 @@ export function hydrateInitialAppState() {
 
 export function clearState() {
   try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
-  try { localStorage.removeItem(LEGACY_KEY_V5); } catch (_) {}
 }
 
 // ── Export JSON ─────────────────────────────────────────────────────────────
@@ -124,8 +99,8 @@ export function exportCSV(substations, networkProjects = []) {
   const rows = substations.map(s => {
     const cols = [
       s.name, s.code, s.commune,
-      s.plannableCapacity,
-      (s.plannableCapacity * (s.transformerConfig?.reverseCapacityRatio ?? 1.0)).toFixed(1),
+      getDirectCapacityN1AtYear(s, YEARS[0], networkProjects).toFixed(1),
+      getReverseCapacityN1AtYear(s, YEARS[0], networkProjects).toFixed(1),
     ];
     YEARS.forEach(y => {
       cols.push(
@@ -161,11 +136,12 @@ export function importJSONFile(file, onSuccess, onError) {
       if (!d.substations)
         throw new Error('Format invalide : propriété substations manquante.');
 
-      // Accept v5 or v6 (migrate v5 on import)
       if (d.version && d.version > STORAGE_VERSION)
         throw new Error(
           `Format v${d.version} détecté — version postérieure (actuelle : v${STORAGE_VERSION}).`
         );
+      if (!d.version || d.version < STORAGE_VERSION)
+        throw new Error('Format pré-v11 non importé automatiquement : repartez des données d’exemple ou exportez au format v11.');
 
       d.substations     = normalizeSubstations(d.substations);
       if (d.networkProjects) d.networkProjects = normalizeProjects(d.networkProjects);

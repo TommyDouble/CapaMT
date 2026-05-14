@@ -72,9 +72,12 @@ export function computeEffectsFromBlocks(blocks, substations) {
         coeffN:   safeNum(block.coeffN,  0.90),
         coeffN1:  safeNum(block.coeffN1, 1.00),
         mtBackup: { enabled: false, capacity: 0 },
+        reverseCapacityRatio: safeNum(block.reverseCapacityRatio, 1.0),
       };
 
       const newId = block._newSsId || `ss-new-${uid().slice(0, 6)}`;
+      const initialLoad = safeNum(block.initialLoadMva, 0);
+      const growthRate = safeNum(block.growthRatePct, 1.5) / 100;
 
       effects.push({
         ssId:   newId,
@@ -87,8 +90,31 @@ export function computeEffectsFromBlocks(blocks, substations) {
           voltageLevel:     `${block.voltageUpstream || '36kV'}/10 kV`,
           voltageUpstream:  block.voltageUpstream || '36kV',
           transformerConfig: tc,
-          baseLoadInitial:  safeNum(block.baseLoadInitial, 0),
-          organicGrowthRate: safeNum(block.organicGrowthRate, 1.5) / 100,
+          directionalModel: {
+            referenceYear: 2025,
+            withdrawalView: {
+              maxHistoricLoadBT: initialLoad,
+              maxHistoricLoadMT: 0,
+              minHistoricInjectionBT: 0,
+              minHistoricInjectionMT: 0,
+              growthLoadMaxBT: growthRate,
+              growthLoadMaxMT: growthRate,
+              growthMinInjectionBT: 0,
+              growthMinInjectionMT: 0,
+            },
+            injectionView: {
+              maxHistoricInjectionBT: 0,
+              maxHistoricInjectionMT: 0,
+              minHistoricLoadBT: 0,
+              minHistoricLoadMT: 0,
+              growthMaxInjectionBT: 0,
+              growthMaxInjectionMT: 0,
+              growthMinLoadBT: 0,
+              growthMinLoadMT: 0,
+            },
+          },
+          foisonnement: {},
+          connectionRequests: [],
           status: 'actif',
           notes:  '',
         },

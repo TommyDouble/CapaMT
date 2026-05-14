@@ -1,7 +1,7 @@
 /**
  * chartTheme.js
  * Reads CSS custom properties at render time to produce theme-aware
- * Chart.js configuration values. Used by EvolutionTab, ChargeHistoryTab,
+ * Chart.js configuration values. Used by EvolutionTab,
  * and ProjectBudgetChart — all of which need to react to light/dark toggle.
  *
  * Pure utility — no state, no side-effects.
@@ -24,6 +24,7 @@ export function getChartTheme() {
     amber:       cssVar('--amber',        '#d97706'),
     bgRaised:    cssVar('--bg-raised',    '#fff'),
     textPrimary: cssVar('--text-primary', '#1a1230'),
+    textSecondary: cssVar('--text-secondary', '#4a4162'),
     textMuted:   cssVar('--text-muted',   '#8a82a0'),
     border:      cssVar('--border',       '#e8e2f0'),
     fontMono:    cssVar('--font-mono',    "'JetBrains Mono', monospace"),

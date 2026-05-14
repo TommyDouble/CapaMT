@@ -2,7 +2,7 @@
  * engines/directionalSubstation.js
  *
  * Moteur de calcul directionnel pour une sous-station.
- * Remplace le modèle unique Organic Load par deux vues symétriques :
+ * Le calcul s'appuie sur deux vues symétriques :
  *
  *   Vue Prélèvement (withdrawal) :
  *     Base = LoadMaxBT + LoadMaxMT − MinInjBT − MinInjMT
@@ -30,27 +30,19 @@ import {
   getEffectiveRigidReservation, getEffectivePilotableReservation,
   getEffectiveInjRigide, getEffectiveInjPilot,
 } from './requests.js';
+import { computeCapacityImpact, isActiveCapacityImpact } from './capacityImpact.js';
+import { getCustomer } from './requestModel.js';
 
 // ── Helpers internes ───────────────────────────────────────────────────────
 
-/** Requêtes actives pour une SS et une année cible (hors annulées, raccordées). */
-function _activeRequests(sub, year, inclCond = false) {
-  const INACTIVE = new Set(['annulée', 'annulé', 'raccordée', 'raccordé']);
+/** Requêtes actives pour une SS et une année cible. */
+function _activeRequests(sub, year) {
   return (sub.connectionRequests || []).filter(r => {
-    if (INACTIVE.has(r.status)) return false;
-    if (!inclCond && r.status === 'conditionnel') return false;
-    const reqYear = r.yearSouhaitee || r.year || 2026;
+    const impact = computeCapacityImpact(r);
+    if (!isActiveCapacityImpact(impact)) return false;
+    const reqYear = getCustomer(r).requested?.year || 2026;
     return reqYear <= year;
   });
-}
-
-/** Load-transfer cumulé d'un projet vers cette SS, avec croissance optionnelle. */
-function _loadTransferNet(sub, year, growthRate) {
-  // Note: load_transfer effects are additive to the base net
-  // They grow at the BT growth rate (approximation)
-  let total = 0;
-  // No projects arg here — the caller passes projects
-  return total;
 }
 
 // ── Projection d'une composante ────────────────────────────────────────────
@@ -113,23 +105,7 @@ export function getReverseCapacityNAtYear(sub, year, projects = []) {
  */
 export function getWithdrawalBaseNet(sub, year, projects = []) {
   const m = sub.directionalModel;
-  if (!m?.withdrawalView) {
-    // Fallback legacy : baseLoad2025 + organicGrowthRate
-    const base = safeNum(sub.baseLoad2025, 0);
-    const rate = safeNum(sub.organicGrowthRate, 0);
-    let legacy = base * Math.pow(1 + rate, year - REF_YEAR);
-    // Apply load_transfer effects
-    (projects || []).forEach(proj => {
-      if (proj.status === 'annulé') return;
-      (proj.effects || []).forEach(eff => {
-        if (eff.ssId === sub.id && eff.action === 'load_transfer' && proj.year <= year) {
-          const delta = safeNum(eff.loadDelta, 0);
-          legacy += delta * Math.pow(1 + rate, year - proj.year);
-        }
-      });
-    });
-    return Math.max(0, legacy);
-  }
+  if (!m?.withdrawalView) return 0;
 
   const v      = m.withdrawalView;
   const refY   = safeNum(m.referenceYear, REF_YEAR);
@@ -441,8 +417,6 @@ export function isSubstationAtRiskDirectional(sub, projects = []) {
 export function buildDirectionalSnapshot(sub, year, activeView = 'withdrawal', projects = []) {
   if (!sub) return null;
   const m = sub.directionalModel;
-  const isMigrated = !!sub._directionalMigrated;
-
   const capDirN1 = getDirectCapacityN1AtYear(sub, year, projects);
   const capDirN  = getDirectCapacityNAtYear(sub, year, projects);
   const capRevN1 = getReverseCapacityN1AtYear(sub, year, projects);
@@ -462,7 +436,6 @@ export function buildDirectionalSnapshot(sub, year, activeView = 'withdrawal', p
   return {
     // Identity
     subId:      sub.id,
-    isMigrated,
     referenceYear: safeNum(m?.referenceYear, REF_YEAR),
     targetYear: year,
     activeView,

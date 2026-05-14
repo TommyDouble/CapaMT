@@ -7,14 +7,15 @@ import { ALERT_CONFIG, YEARS } from '../../../constants/index.js';
 import { f1, pct } from '../../../utils/format.js';
 import { useProjects } from '../../App.jsx';
 import {
-  getUtilizationWithdrawalRigid, getWorstAlertRigid, getFirstSatYearRigid,
+  getUtilizationWithdrawalRigid,
   getUtilizationInjectionRigid,
   getDirectCapacityN1AtYear, getReverseCapacityN1AtYear,
-} from '../../../engines/load.js';
+} from '../../../engines/directionalSubstation.js';
 import {
   getResidualWithdrawalRigid, getFirstInjectionSaturationYear,
   getInjectionRigid, projectDirectionalComponent,
 } from '../../../engines/directionalSubstation.js';
+import { getWorstWithdrawalAlert, getFirstWithdrawalSaturation } from '../../../engines/alerts.js';
 import { AlertBadge } from '../../shared/badges.jsx';
 import { UtilBar } from '../../shared/charts.jsx';
 
@@ -84,12 +85,12 @@ export function SubstationList({ substations, onSelect }) {
           </thead>
           <tbody>
             {filtered.map((sub, idx) => {
-              const w1 = getWorstAlertRigid(sub, 2026, 2028, 1.0, projects);
-              const w2 = getWorstAlertRigid(sub, 2029, 2031, 1.0, projects);
-              const w3 = getWorstAlertRigid(sub, 2032, 2035, 1.0, projects);
+              const w1 = getWorstWithdrawalAlert(sub, 2026, 2028, projects);
+              const w2 = getWorstWithdrawalAlert(sub, 2029, 2031, projects);
+              const w3 = getWorstWithdrawalAlert(sub, 2032, 2035, projects);
               const uWR = getUtilizationWithdrawalRigid(sub, 2026, projects);
               const uIR = getUtilizationInjectionRigid(sub, 2026, projects);
-              const satW = getFirstSatYearRigid(sub, 1.0, projects);
+              const satW = getFirstWithdrawalSaturation(sub, projects);
               const satI = getFirstInjectionSaturationYear(sub, projects);
               const capDN1 = getDirectCapacityN1AtYear(sub, 2026, projects);
               const capRN1 = getReverseCapacityN1AtYear(sub, 2026, projects);
@@ -112,11 +113,6 @@ export function SubstationList({ substations, onSelect }) {
                   <td style={{ padding: '9px 10px' }}>
                     <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 12, lineHeight: 1.2 }}>
                       {sub.name}
-                      {sub._directionalMigrated && (
-                        <span style={{ marginLeft: 5, fontSize: 8, fontWeight: 700, padding: '1px 4px',
-                          borderRadius: 3, background: 'var(--amber-dim)', color: 'var(--amber)',
-                          border: '1px solid rgba(217,119,6,.2)', verticalAlign: 'middle' }}>MIGRÉ</span>
-                      )}
                     </div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>
                       {sub.code} · {sub.commune}

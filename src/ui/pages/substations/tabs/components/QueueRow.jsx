@@ -10,11 +10,13 @@ import {
   reqGrdPrelevFerme, reqGrdPrelevFlexible, reqGrdInjFerme, reqGrdInjFlexible,
 } from '../../../../../engines/queue.js';
 import { DecisionBadge, ExpiryChip, Tag } from '../../../../shared/badges.jsx';
+import { getAssessment, getCustomer } from '../../../../../engines/requestModel.js';
 
 // ── Source tooltip ────────────────────────────────────────────────────────────
 function SourceTooltip({ req }) {
-  const inj = req.client?.detailInjection || [];
-  const prev = req.client?.detailPrelevement || [];
+  const breakdown = getCustomer(req).powerBreakdown || {};
+  const inj = breakdown.injection || [];
+  const prev = breakdown.load || [];
   if (!inj.length && !prev.length) return null;
   return (
     <span style={{ position: 'relative', display: 'inline-block' }} className="source-tooltip-wrap">
@@ -26,8 +28,8 @@ function SourceTooltip({ req }) {
         fontSize: 11, lineHeight: 1.6, zIndex: 99, boxShadow: 'var(--shadow-lg)',
         minWidth: 180, whiteSpace: 'nowrap', pointerEvents: 'none',
       }}>
-        {prev.map((d, i) => <div key={i}>{PREV_USAGE_ICONS[d.usage] || '•'} {d.usage} : {d.puissance} MVA{d.flexible ? ' ⚡' : ''}</div>)}
-        {inj.map((d, i) => <div key={i}>{INJ_SOURCE_ICONS[d.source] || '•'} {d.source} : {d.puissanceContractuelle} MVA</div>)}
+        {prev.map((d, i) => <div key={i}>{PREV_USAGE_ICONS[d.type] || '•'} {d.type} : {d.powerMva} MVA{d.flexible ? ' ⚡' : ''}</div>)}
+        {inj.map((d, i) => <div key={i}>{INJ_SOURCE_ICONS[d.source] || '•'} {d.source} : {d.powerMva} MVA</div>)}
       </span>
     </span>
   );
@@ -69,8 +71,10 @@ function ResidualPair({ wBefore, wAfter, iBefore, iAfter, cap, capRev }) {
   );
 }
 
-export function QueueRow({ item, onEdit, onArchive, onDelete }) {
+export function QueueRow({ item, onEdit, onArchive, onDelete, onOpenDossier }) {
   const req = item.req;
+  const customer = getCustomer(req);
+  const assessment = getAssessment(req);
   const isPrelev = reqClientPrelevTotal(req) > 0;
   const isInj = reqClientInjTotal(req) > 0;
   const grdPF = reqGrdPrelevFerme(req), grdPFl = reqGrdPrelevFlexible(req);
@@ -102,16 +106,15 @@ export function QueueRow({ item, onEdit, onArchive, onDelete }) {
       {/* Requester */}
       <td style={{ padding: '10px 10px' }}>
         <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', marginBottom: 3 }}>
-          {req.name}
+          {customer.client?.name || '(sans titre)'}
           {item.hasFifoAlert && <span style={{ marginLeft: 5, color: 'var(--amber)', fontSize: 11 }}>⚠</span>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-          {req.refProjet && <span style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{req.refProjet} ·</span>}
-          <Tag v={req.type} />
+          {customer.client?.reference && <span style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{customer.client.reference} ·</span>}
+          <Tag v={customer.client?.type} />
           <SourceTooltip req={req} />
-          <Tag v={req.status} />
           <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-            MES {req.yearSouhaitee || req.year || '—'}
+            MES {customer.requested?.year || '—'}
           </span>
         </div>
       </td>
@@ -125,7 +128,7 @@ export function QueueRow({ item, onEdit, onArchive, onDelete }) {
 
       {/* GRD */}
       <td style={{ textAlign: 'right', padding: '10px 8px' }}>
-        {req.grd ? (
+        {assessment.status === 'studied' ? (
           <div style={{ lineHeight: 1.5 }}>
             {(grdPF + grdPFl) > 0 && (
               <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--prelev)', fontWeight: 700 }}>
@@ -149,7 +152,7 @@ export function QueueRow({ item, onEdit, onArchive, onDelete }) {
       {/* Residual */}
       <td style={{ padding: '10px 8px' }}>
         <ResidualPair
-          wBefore={item.withdrawalResidualBefore ?? item.residualBefore}
+          wBefore={item.withdrawalResidualBefore}
           wAfter={item.withdrawalResidualAfter ?? item.residualAfter}
           iBefore={item.injectionResidualBefore}
           iAfter={item.injectionResidualAfter}
@@ -176,8 +179,14 @@ export function QueueRow({ item, onEdit, onArchive, onDelete }) {
       {/* Actions */}
       <td style={{ textAlign: 'right', paddingRight: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
+          {onOpenDossier && (
+            <button className="btn-edit-link" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}
+              onClick={onOpenDossier}>
+              Dossier →
+            </button>
+          )}
           <button className="btn-edit-link" style={{ fontSize: 11 }} onClick={() => onEdit(req)}>Modifier</button>
-          {req.status === 'étudiée' && (
+          {assessment.status === 'studied' && (
             <button onClick={() => onArchive(req, 'raccordée')} style={{
               fontSize: 10, color: 'var(--inj-text)', background: 'var(--inj-dim)',
               border: '1px solid var(--inj-border)', borderRadius: 4, cursor: 'pointer',

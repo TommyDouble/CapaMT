@@ -1,362 +1,466 @@
 /**
- * GlobalQueuePage.jsx — v2.0
- * Vue consolidée de toutes les demandes de raccordement.
- * Design "Technical Precision" — couleurs sémantiques prélèvement/injection.
+ * GlobalQueuePage.jsx
+ * Cockpit actionnable de la file réseau globale.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { DECISION_CONFIG } from '../../../constants/index.js';
-import { f1, pct, fmtShortDate } from '../../../utils/format.js';
-import { useProjects } from '../../App.jsx';
+import { f1 } from '../../../utils/format.js';
 import {
-  getQueueAnalysis, getGlobalQueueStats,
-  getEffectiveRigidReservation,
-  reqGrdPrelevFerme, reqGrdPrelevFlexible, reqGrdInjFerme, reqGrdInjFlexible,
-} from '../../../engines/queue.js';
-import { reqClientPrelevTotal, reqClientInjTotal } from '../../../engines/requests.js';
-import { DecisionBadge, ExpiryChip, Tag } from '../../shared/badges.jsx';
+  buildQueueCockpitRows,
+  buildQueueCockpitStats,
+  ENERGY_DIRECTION_CONFIG,
+  filterQueueCockpitRows,
+  getDefaultCockpitStep,
+  QUEUE_WORKFLOW_STEPS,
+  RESERVATION_STATUS_CONFIG,
+  sortQueueCockpitRows,
+} from '../../../engines/queueCockpit.js';
+import { useProjects } from '../../App.jsx';
+import { QueueCockpitTable } from './components/QueueCockpitTable.jsx';
 
-// ── Barre de résiduel mini ────────────────────────────────────────────────────
-function MiniBar({ value, capacity, color }) {
-  const r = capacity > 0 ? Math.max(0, value) / capacity : 0;
-  const c = value < 0 ? 'var(--red)' : value < 3 ? 'var(--amber)' : color || 'var(--green)';
+const STEP_BY_KEY = Object.fromEntries(QUEUE_WORKFLOW_STEPS.map(step => [step.key, step]));
+
+function PillButton({ label, count, active, color, onClick }) {
   return (
-    <div style={{ display:'flex',alignItems:'center',gap:4,minWidth:90 }}>
-      <div style={{ flex:1,height:4,borderRadius:2,background:'var(--bg-muted)',overflow:'hidden' }}>
-        <div style={{ width:`${Math.min(r*100,100)}%`,height:'100%',background:c,transition:'width .3s' }}/>
-      </div>
-      <span style={{ fontFamily:'var(--font-mono)',fontSize:9,fontWeight:700,color:c,minWidth:28,textAlign:'right' }}>
-        {value != null ? f1(value) : '—'}
+    <button type="button" onClick={onClick} style={{
+      minHeight: 38,
+      padding: '8px 13px',
+      borderRadius: 8,
+      fontSize: 12,
+      fontWeight: 800,
+      cursor: 'pointer',
+      border: active ? `1px solid ${color}` : '1px solid var(--border)',
+      fontFamily: 'inherit',
+      background: active ? color : 'var(--bg-raised)',
+      color: active ? '#fff' : 'var(--text-secondary)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      boxShadow: active ? '0 8px 22px rgba(15,23,42,.10)' : 'none',
+    }}>
+      {label}
+      <span style={{
+        minWidth: 22,
+        textAlign: 'center',
+        borderRadius: 999,
+        padding: '1px 7px',
+        fontSize: 10,
+        background: active ? 'rgba(255,255,255,.22)' : 'var(--bg-muted)',
+        color: active ? '#fff' : 'var(--text-muted)',
+      }}>
+        {count}
       </span>
-    </div>
+    </button>
   );
 }
 
-// ── Direction chip ────────────────────────────────────────────────────────────
-function DirChip({ hasPrelev, hasInj }) {
+function MetricCard({ label, value, suffix, color = 'var(--text-primary)', subtitle }) {
   return (
-    <div style={{ display:'flex',gap:3,alignItems:'center' }}>
-      {hasPrelev && <span style={{ fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:4,
-        background:'var(--prelev-dim)',color:'var(--prelev)',border:'1px solid var(--prelev-border)' }}>⬆ PRÉL</span>}
-      {hasInj    && <span style={{ fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:4,
-        background:'var(--inj-dim)',   color:'var(--inj)',   border:'1px solid var(--inj-border)' }}>⬇ INJ</span>}
+    <div className="metric-box" style={{ minHeight: 82, borderTop: `3px solid ${color}`, paddingTop: 9 }}>
+      <div className="metric-box__label">{label}</div>
+      <div className="metric-box__value" style={{ color, fontSize: 20 }}>
+        {value}
+        {suffix && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginLeft: 4 }}>{suffix}</span>}
+      </div>
+      {subtitle && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{subtitle}</div>}
     </div>
   );
 }
 
-// ── Composant principal ───────────────────────────────────────────────────────
-export function GlobalQueuePage({ substations, onNavigate }) {
+function FloatingMenu({
+  menu, filters, optionsByKey, sort, onToggleFilter, onClearFilter, onClientChange, onSort,
+}) {
+  if (!menu) return null;
+  const x = Math.min(menu.x, Math.max(12, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 300));
+  const style = {
+    position: 'fixed',
+    zIndex: 2000,
+    top: menu.y + 6,
+    left: x,
+    minWidth: menu.kind === 'client' ? 280 : 230,
+    maxWidth: 300,
+    padding: 10,
+    background: 'var(--bg-raised)',
+    border: '1px solid var(--border)',
+    borderRadius: 8,
+    boxShadow: '0 18px 40px rgba(15,23,42,.18)',
+  };
+
+  if (menu.kind === 'sort') {
+    return (
+      <div data-filter-menu="true" style={style}>
+        <SortButton active={sort.field === menu.key && sort.direction === 'asc'} onClick={() => onSort(menu.key, 'asc')}>
+          Tri ascendant
+        </SortButton>
+        <SortButton active={sort.field === menu.key && sort.direction === 'desc'} onClick={() => onSort(menu.key, 'desc')}>
+          Tri descendant
+        </SortButton>
+      </div>
+    );
+  }
+
+  if (menu.kind === 'filterSort') {
+    const options = optionsByKey[menu.key] || [];
+    const selected = filters[menu.key] || [];
+    const sortField = menu.sortField || menu.key;
+    return (
+      <div data-filter-menu="true" style={style}>
+        <div style={menuTitleStyle}>
+          <p style={menuTitleTextStyle}>{menu.label}</p>
+          <button type="button" onClick={() => onClearFilter(menu.key)} style={clearButtonStyle}>Effacer</button>
+        </div>
+        <div style={{ display: 'grid', gap: 6, marginBottom: 8 }}>
+          {options.map(opt => (
+            <label key={opt.value} style={optionStyle}>
+              <input
+                type="checkbox"
+                checked={selected.includes(opt.value)}
+                onChange={() => onToggleFilter(menu.key, opt.value)}
+              />
+              <span style={{ fontWeight: 700 }}>{opt.label}</span>
+            </label>
+          ))}
+        </div>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+          <SortButton active={sort.field === sortField && sort.direction === 'asc'} onClick={() => onSort(sortField, 'asc')}>
+            Rang croissant
+          </SortButton>
+          <SortButton active={sort.field === sortField && sort.direction === 'desc'} onClick={() => onSort(sortField, 'desc')}>
+            Rang décroissant
+          </SortButton>
+        </div>
+      </div>
+    );
+  }
+
+  if (menu.kind === 'client') {
+    return (
+      <div data-filter-menu="true" style={style}>
+        <div style={menuTitleStyle}>
+          <p style={menuTitleTextStyle}>Demandeur</p>
+          <button type="button" onClick={() => onClientChange('')} style={clearButtonStyle}>Effacer</button>
+        </div>
+        <input
+          autoFocus
+          className="input-field"
+          value={filters.client}
+          onChange={e => onClientChange(e.target.value)}
+          placeholder="Client, référence, type"
+          style={{ height: 32, fontSize: 12, marginBottom: 8 }}
+        />
+        <SortButton active={sort.field === 'customer' && sort.direction === 'asc'} onClick={() => onSort('customer', 'asc')}>
+          Trier A → Z
+        </SortButton>
+        <SortButton active={sort.field === 'customer' && sort.direction === 'desc'} onClick={() => onSort('customer', 'desc')}>
+          Trier Z → A
+        </SortButton>
+      </div>
+    );
+  }
+
+  const options = optionsByKey[menu.key] || [];
+  const selected = filters[menu.key] || [];
+  return (
+    <div data-filter-menu="true" style={style}>
+      <div style={menuTitleStyle}>
+        <p style={menuTitleTextStyle}>{menu.label}</p>
+        <button type="button" onClick={() => onClearFilter(menu.key)} style={clearButtonStyle}>Effacer</button>
+      </div>
+      {menu.searchable && (
+        <input
+          className="input-field"
+          value={menu.query}
+          onChange={e => menu.setQuery(e.target.value)}
+          placeholder="Rechercher"
+          style={{ height: 30, fontSize: 12, marginBottom: 8 }}
+        />
+      )}
+      <div style={{ display: 'grid', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
+        {options
+          .filter(opt => {
+            const q = menu.query?.trim().toLowerCase();
+            if (!q) return true;
+            return opt.label.toLowerCase().includes(q) || String(opt.hint || '').toLowerCase().includes(q);
+          })
+          .map(opt => (
+            <label key={opt.value} style={optionStyle}>
+              <input
+                type="checkbox"
+                checked={selected.includes(opt.value)}
+                onChange={() => onToggleFilter(menu.key, opt.value)}
+              />
+              <span style={{ minWidth: 0 }}>
+                <span style={{ fontWeight: 700 }}>{opt.label}</span>
+                {opt.hint && <span style={{ color: 'var(--text-muted)' }}> · {opt.hint}</span>}
+              </span>
+            </label>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function SortButton({ active, children, onClick }) {
+  return (
+    <button type="button" onClick={onClick} style={{
+      display: 'block',
+      width: '100%',
+      textAlign: 'left',
+      border: 'none',
+      background: active ? 'var(--bg-muted)' : 'transparent',
+      color: active ? 'var(--accent)' : 'var(--text-secondary)',
+      borderRadius: 6,
+      padding: '7px 8px',
+      fontSize: 12,
+      fontWeight: 800,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+    }}>
+      {children}
+    </button>
+  );
+}
+
+function FilterChips({ chips, onRemove, onClear }) {
+  if (!chips.length) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+      {chips.map(chip => (
+        <button type="button" key={`${chip.group}:${chip.value}`} onClick={() => onRemove(chip.group, chip.value)} style={{
+          border: '1px solid var(--border)',
+          background: 'var(--bg-raised)',
+          color: 'var(--text-secondary)',
+          borderRadius: 999,
+          padding: '4px 9px',
+          fontSize: 11,
+          fontWeight: 700,
+          cursor: 'pointer',
+        }}>
+          {chip.label} ×
+        </button>
+      ))}
+      <button type="button" onClick={onClear} style={clearButtonStyle}>Effacer tout</button>
+    </div>
+  );
+}
+
+function buildFilterChips(filters, lookups) {
+  const chips = Object.entries(filters)
+    .filter(([group]) => group !== 'client')
+    .flatMap(([group, values]) =>
+      values.map(value => ({
+        group,
+        value,
+        label: lookups[group]?.[value] || value,
+      }))
+    );
+  if (filters.client?.trim()) {
+    chips.push({ group: 'client', value: filters.client, label: `Client: ${filters.client.trim()}` });
+  }
+  return chips;
+}
+
+const menuTitleStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 };
+const menuTitleTextStyle = { fontSize: 12, fontWeight: 800, color: 'var(--text-primary)' };
+const optionStyle = {
+  display: 'flex',
+  gap: 8,
+  alignItems: 'center',
+  fontSize: 12,
+  color: 'var(--text-secondary)',
+  cursor: 'pointer',
+};
+const clearButtonStyle = {
+  border: 'none',
+  background: 'transparent',
+  color: 'var(--accent)',
+  fontSize: 11,
+  fontWeight: 800,
+  cursor: 'pointer',
+  padding: 0,
+  fontFamily: 'inherit',
+};
+
+function toggleListValue(values, value) {
+  return values.includes(value)
+    ? values.filter(v => v !== value)
+    : [...values, value];
+}
+
+export function GlobalQueuePage({ substations, onNavigate, onNavigateToRequest, onAdd }) {
   const projects = useProjects();
-  const [filterSub,  setFilterSub]  = useState('all');
-  const [filterDir,  setFilterDir]  = useState('all'); // all | prelev | inj | both
-  const [filterDec,  setFilterDec]  = useState('all');
-  const [filterExp,  setFilterExp]  = useState('all');
-
-  const stats = getGlobalQueueStats(substations, projects);
-
-  // Compute injection totals from queue (not in getGlobalQueueStats)
-  let totalInjReserved = 0;
-  substations.forEach(sub => {
-    const { queue } = getQueueAnalysis(sub, projects);
-    queue.forEach(item => { totalInjReserved += reqGrdInjFerme(item.req); });
+  const rows = useMemo(() => buildQueueCockpitRows(substations, projects), [substations, projects]);
+  const stats = useMemo(() => buildQueueCockpitStats(rows), [rows]);
+  const defaultStep = useMemo(() => getDefaultCockpitStep(rows), [rows]);
+  const [activeStep, setActiveStep] = useState(null);
+  const [menu, setMenu] = useState(null);
+  const [substationQuery, setSubstationQuery] = useState('');
+  const [filters, setFilters] = useState({
+    client: '',
+    fifo: [],
+    substations: [],
+    directions: [],
+    decisions: [],
+    reservations: [],
   });
+  const [sort, setSort] = useState({ field: 'priority', direction: 'desc' });
 
-  // Aplatir toutes les demandes
-  const allItems = substations.flatMap(sub => {
-    const { queue, conditionals } = getQueueAnalysis(sub, projects);
-    return [...queue, ...conditionals].map(item => ({ ...item, sub }));
-  });
+  const currentStep = activeStep || defaultStep;
+  const stepRows = useMemo(() => filterQueueCockpitRows(rows, currentStep, {}), [rows, currentStep]);
+  const displayedRows = useMemo(() => {
+    const filtered = filterQueueCockpitRows(rows, currentStep, filters);
+    return sortQueueCockpitRows(filtered, sort);
+  }, [rows, currentStep, filters, sort]);
 
-  const filtered = allItems.filter(item => {
-    if (filterSub !== 'all' && item.sub.id !== filterSub) return false;
-    if (filterDec !== 'all' && item.decision !== filterDec) return false;
-    if (filterExp === 'urgent' && !['expiré','bientôt'].includes(item.expiry?.status)) return false;
-    if (filterExp === 'expiré' && item.expiry?.status !== 'expiré') return false;
-    const isPrelev = reqClientPrelevTotal(item.req) > 0;
-    const isInj    = reqClientInjTotal(item.req) > 0;
-    if (filterDir === 'prelev' && !isPrelev) return false;
-    if (filterDir === 'inj'    && !isInj)    return false;
-    if (filterDir === 'both'   && !(isPrelev && isInj)) return false;
-    return true;
-  });
+  const activeFilterCount = Object.entries(filters).reduce((sum, [key, value]) => {
+    if (key === 'client') return sum + (value.trim() ? 1 : 0);
+    return sum + value.length;
+  }, 0);
+  const activeStepConfig = STEP_BY_KEY[currentStep] || STEP_BY_KEY.all;
 
-  const urgCount = stats.expired + stats.expiringSoon;
+  useEffect(() => {
+    if (!menu) return undefined;
+    const onPointerDown = event => {
+      if (event.target.closest?.('[data-filter-menu="true"]') || event.target.closest?.('[data-header-menu-button="true"]')) return;
+      setMenu(null);
+    };
+    const onKey = event => {
+      if (event.key === 'Escape') setMenu(null);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menu]);
+
+  const substationOptions = substations.map(sub => ({ value: sub.id, label: sub.name, hint: sub.code }));
+  const directionOptions = Object.entries(ENERGY_DIRECTION_CONFIG)
+    .filter(([key]) => key !== 'none')
+    .map(([value, cfg]) => ({ value, label: cfg.label }));
+  const fifoOptions = [
+    { value: 'in_queue', label: 'En file uniquement' },
+    { value: 'head', label: 'Tête de file' },
+  ];
+  const decisionOptions = Object.keys(DECISION_CONFIG)
+    .filter(value => rows.some(row => row.displayDecision === value))
+    .map(value => ({ value, label: DECISION_CONFIG[value]?.label || value }));
+  const reservationOptions = Object.entries(RESERVATION_STATUS_CONFIG)
+    .filter(([value]) => rows.some(row => row.displayReservationStatus === value))
+    .map(([value, cfg]) => ({ value, label: cfg.label }));
+
+  const optionsByKey = {
+    fifo: fifoOptions,
+    substations: substationOptions,
+    directions: directionOptions,
+    decisions: decisionOptions,
+    reservations: reservationOptions,
+  };
+  const lookups = {
+    fifo: Object.fromEntries(fifoOptions.map(opt => [opt.value, opt.label])),
+    substations: Object.fromEntries(substationOptions.map(opt => [opt.value, opt.label])),
+    directions: Object.fromEntries(directionOptions.map(opt => [opt.value, opt.label])),
+    decisions: Object.fromEntries(decisionOptions.map(opt => [opt.value, opt.label])),
+    reservations: Object.fromEntries(reservationOptions.map(opt => [opt.value, opt.label])),
+  };
+  const filterChips = buildFilterChips(filters, lookups);
+
+  const openHeaderMenu = (key, event, kind) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const labels = {
+      substations: 'Sous-station',
+      fifo: 'Rang FIFO',
+      directions: 'Sens énergie',
+      reservations: 'Réservation',
+      decisions: 'Décision',
+    };
+    setMenu(prev => prev?.key === key ? null : {
+      key,
+      kind,
+      label: labels[key] || key,
+      x: rect.left,
+      y: rect.bottom,
+      searchable: key === 'substations',
+      query: key === 'substations' ? substationQuery : '',
+      setQuery: key === 'substations' ? setSubstationQuery : () => {},
+      sortField: key === 'fifo' ? 'fifoRank' : key,
+    });
+  };
+  const toggleFilter = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: toggleListValue(prev[key] || [], value) }));
+  };
+  const clearFilter = key => setFilters(prev => ({ ...prev, [key]: [] }));
+  const clearAllFilters = () => setFilters({ client: '', fifo: [], substations: [], directions: [], decisions: [], reservations: [] });
+  const removeFilter = (group, value) => {
+    if (group === 'client') setFilters(prev => ({ ...prev, client: '' }));
+    else setFilters(prev => ({ ...prev, [group]: (prev[group] || []).filter(v => v !== value) }));
+  };
+  const changeSort = (field, direction) => {
+    setSort({ field, direction });
+    setMenu(null);
+  };
 
   return (
-    <div style={{ display:'flex',flexDirection:'column',gap:16 }} className="fade-in">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }} className="fade-in">
+      <FloatingMenu
+        menu={menu?.key === 'substations' ? { ...menu, query: substationQuery } : menu}
+        filters={filters}
+        optionsByKey={optionsByKey}
+        sort={sort}
+        onToggleFilter={toggleFilter}
+        onClearFilter={clearFilter}
+        onClientChange={value => setFilters(prev => ({ ...prev, client: value }))}
+        onSort={changeSort}
+      />
 
-      {/* ── Header ── */}
-      <div>
-        <h2 className="page-title">File d'attente réseau</h2>
-        <p className="page-subtitle">
-          Vue consolidée · Ordre chronologique par SS · {allItems.length} demande(s)
-        </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+        <div>
+          <h2 className="page-title">File d'attente réseau</h2>
+          <p className="page-subtitle">
+            {displayedRows.length}/{stepRows.length} demande(s) dans {activeStepConfig.label}
+            {' · '}
+            {activeFilterCount} filtre(s) colonne actif(s)
+          </p>
+        </div>
+        {onAdd && (
+          <button className="btn-primary" style={{ flexShrink: 0, padding: '8px 18px', fontSize: 13 }} onClick={onAdd}>
+            + Nouvelle demande
+          </button>
+        )}
       </div>
 
-      {/* ── KPIs ── */}
-      <div style={{ display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:8 }}>
-        {/* Total */}
-        <div className="metric-box">
-          <div className="metric-box__label">Total en file</div>
-          <div className="metric-box__value">{stats.total}</div>
-        </div>
-
-        {/* Acceptable */}
-        <div className="metric-box" style={{ borderTop:`3px solid var(--green)`,paddingTop:7 }}>
-          <div className="metric-box__label">Acceptables</div>
-          <div className="metric-box__value" style={{ color:'var(--green)' }}>{stats.acceptable}</div>
-        </div>
-
-        {/* Conditionnel */}
-        <div className="metric-box" style={{ borderTop:`3px solid var(--amber)`,paddingTop:7 }}>
-          <div className="metric-box__label">Conditionnels</div>
-          <div className="metric-box__value" style={{ color:'var(--amber)' }}>{stats.conditionnel}</div>
-        </div>
-
-        {/* Liste attente */}
-        <div className="metric-box" style={{ borderTop:`3px solid var(--red)`,paddingTop:7 }}>
-          <div className="metric-box__label">Liste d'attente</div>
-          <div className="metric-box__value" style={{ color:'var(--red)' }}>{stats.liste_attente}</div>
-        </div>
-
-        {/* MVA prélèvement réservés */}
-        <div className="metric-box" style={{ borderTop:'3px solid var(--prelev)',paddingTop:7 }}>
-          <div className="metric-box__label">Prél. réservé</div>
-          <div className="metric-box__value" style={{ color:'var(--prelev)',fontSize:15 }}>
-            {f1(stats.totalMWReserved)}
-            <span style={{ fontSize:10,fontWeight:500,color:'var(--text-muted)' }}> MVA</span>
-          </div>
-        </div>
-
-        {/* MVA injection réservés */}
-        <div className="metric-box" style={{ borderTop:'3px solid var(--inj)',paddingTop:7 }}>
-          <div className="metric-box__label">Inj. réservée</div>
-          <div className="metric-box__value" style={{ color:'var(--inj)',fontSize:15 }}>
-            {f1(totalInjReserved)}
-            <span style={{ fontSize:10,fontWeight:500,color:'var(--text-muted)' }}> MVA</span>
-          </div>
-        </div>
-
-        {/* Péremptions */}
-        <div className="metric-box" style={{
-          borderTop:`3px solid ${urgCount > 0 ? 'var(--amber)' : 'var(--green)'}`, paddingTop:7 }}>
-          <div className="metric-box__label">Péremptions</div>
-          <div className="metric-box__value" style={{ color: urgCount > 0 ? 'var(--amber)' : 'var(--green)' }}>
-            {urgCount}
-          </div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+        <MetricCard label="À traiter maintenant" value={stats.actionNow} color="var(--accent)" subtitle="action disponible" />
+        <MetricCard label="CAPAC bloquants" value={stats.capacBlocking} color="#ea580c" subtitle="en attente ELIA" />
+        <MetricCard label="Offres expirées" value={stats.expiredOffers} color="var(--red)" subtitle="réservées à traiter" />
+        <MetricCard label="MVA réservés actifs" value={f1(stats.activeReservedMva)} suffix="MVA" color="var(--prelev)" subtitle="prélèvement + injection" />
       </div>
 
-      {/* ── Filtres ── */}
-      <div style={{ display:'flex',gap:8,flexWrap:'wrap',alignItems:'center' }}>
-        <select value={filterSub} onChange={e => setFilterSub(e.target.value)}
-          className="input-field" style={{ width:180 }}>
-          <option value="all">Toutes les SS</option>
-          {substations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-
-        {/* Filtre direction */}
-        <div className="seg-toggle">
-          {[
-            { v:'all',    l:'Tout' },
-            { v:'prelev', l:'⬆ Prél.' },
-            { v:'inj',    l:'⬇ Inj.' },
-            { v:'both',   l:'Bidirectionnel' },
-          ].map(f => (
-            <button key={f.v} className={`seg-toggle__btn${filterDir===f.v
-              ? f.v==='prelev' ? ' active-prelev' : f.v==='inj' ? ' active-inj' : ' active-prelev'
-              : ''}`}
-              onClick={() => setFilterDir(f.v)}
-              style={{ padding:'5px 12px',fontSize:11 }}>{f.l}</button>
-          ))}
-        </div>
-
-        <select value={filterDec} onChange={e => setFilterDec(e.target.value)}
-          className="input-field" style={{ width:160 }}>
-          <option value="all">Toutes décisions</option>
-          {Object.entries(DECISION_CONFIG).map(([k, c]) => (
-            <option key={k} value={k}>{c.icon} {c.label}</option>
-          ))}
-        </select>
-
-        <select value={filterExp} onChange={e => setFilterExp(e.target.value)}
-          className="input-field" style={{ width:170 }}>
-          <option value="all">Toutes réservations</option>
-          <option value="urgent">Urgentes (expirées + bientôt)</option>
-          <option value="expiré">Expirées uniquement</option>
-        </select>
-
-        <span style={{ marginLeft:'auto',fontSize:11,color:'var(--text-muted)' }}>
-          {filtered.length} demande(s) affichée(s)
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {QUEUE_WORKFLOW_STEPS.map(step => (
+          <PillButton
+            key={step.key}
+            label={step.label}
+            count={stats.byStep[step.key] || 0}
+            color={step.color}
+            active={currentStep === step.key}
+            onClick={() => setActiveStep(step.key)}
+          />
+        ))}
       </div>
 
-      {/* ── Tableau ── */}
-      <div className="card" style={{ overflow:'hidden' }}>
-        <div style={{ overflowX:'auto' }}>
-          <table style={{ width:'100%',borderCollapse:'collapse',minWidth:1000 }}>
-            <thead>
-              <tr style={{ background:'var(--bg-muted)' }}>
-                {[
-                  { l:'Sous-station',  al:'left',   w:null },
-                  { l:'#',            al:'center', w:32 },
-                  { l:'Demandeur',    al:'left',   w:null },
-                  { l:'Dir.',         al:'center', w:80 },
-                  { l:'Type',         al:'center', w:70 },
-                  { l:'Dépôt',        al:'center', w:68 },
-                  { l:'GRD ferme',    al:'right',  w:90 },
-                  { l:'GRD flex.',    al:'right',  w:80 },
-                  { l:'Rés. prél. →', al:'center', w:130 },
-                  { l:'Rés. inj.',    al:'right',  w:70 },
-                  { l:'Réservation',  al:'center', w:100 },
-                  { l:'Décision',     al:'center', w:90 },
-                  { l:'',             al:'right',  w:60 },
-                ].map(h => (
-                  <th key={h.l} style={{ padding:'8px 10px',textAlign:h.al,width:h.w||undefined,
-                    fontSize:9,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',
-                    color:'var(--text-muted)',borderBottom:'1px solid var(--border)',whiteSpace:'nowrap' }}>{h.l}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 && (
-                <tr><td colSpan={13} style={{ textAlign:'center',padding:'40px',color:'var(--text-muted)',fontSize:13 }}>
-                  Aucune demande ne correspond aux filtres.
-                </td></tr>
-              )}
+      <FilterChips chips={filterChips} onRemove={removeFilter} onClear={clearAllFilters} />
 
-              {filtered.map((item, i) => {
-                const req = item.req;
-                const isPrelev = reqClientPrelevTotal(req) > 0;
-                const isInj    = reqClientInjTotal(req) > 0;
-                const grdPF  = reqGrdPrelevFerme(req);
-                const grdPFl = reqGrdPrelevFlexible(req);
-                const grdIF  = reqGrdInjFerme(req);
-                const accentLeft = item.decision === 'acceptable' ? 'var(--green)'
-                  : item.decision === 'liste_attente' ? 'var(--red)'
-                  : item.decision === 'conditionnel'  ? 'var(--amber)'
-                  : 'var(--border-strong)';
-
-                return (
-                  <tr key={`${item.sub.id}-${req.id}`} className="data-row stagger-item"
-                    style={{ animationDelay:`${i*12}ms`, boxShadow:`inset 3px 0 0 ${accentLeft}` }}>
-
-                    {/* SS */}
-                    <td style={{ padding:'10px 10px' }}>
-                      <button onClick={() => onNavigate(item.sub.id, 'demandes')} style={{
-                        color:'var(--accent)',fontSize:12,fontWeight:700,background:'none',
-                        border:'none',cursor:'pointer',fontFamily:'inherit',padding:0,textAlign:'left' }}>
-                        {item.sub.name}
-                      </button>
-                      <div style={{ fontSize:9,fontFamily:'var(--font-mono)',color:'var(--text-muted)' }}>
-                        {item.sub.code}
-                      </div>
-                    </td>
-
-                    {/* # */}
-                    <td style={{ textAlign:'center',padding:'10px 6px' }}>
-                      <span style={{ fontFamily:'var(--font-mono)',fontSize:10,color:'var(--text-muted)' }}>
-                        {item.position != null ? `#${item.position}` : '—'}
-                      </span>
-                    </td>
-
-                    {/* Demandeur */}
-                    <td style={{ padding:'10px 10px' }}>
-                      <div style={{ fontWeight:500,fontSize:12,color:'var(--text-primary)' }}>{req.name}</div>
-                      {req.refProjet && <div style={{ fontSize:9,fontFamily:'var(--font-mono)',color:'var(--text-muted)' }}>{req.refProjet}</div>}
-                    </td>
-
-                    {/* Direction */}
-                    <td style={{ textAlign:'center',padding:'10px 6px' }}>
-                      <DirChip hasPrelev={isPrelev} hasInj={isInj}/>
-                    </td>
-
-                    {/* Type */}
-                    <td style={{ textAlign:'center',padding:'10px 6px' }}><Tag v={req.type}/></td>
-
-                    {/* Dépôt */}
-                    <td style={{ textAlign:'center',fontFamily:'var(--font-mono)',fontSize:10,
-                      color:'var(--text-muted)',padding:'10px 6px' }}>
-                      {fmtShortDate(req.dateDepot)}
-                    </td>
-
-                    {/* GRD ferme */}
-                    <td style={{ textAlign:'right',padding:'10px 8px' }}>
-                      {grdPF > 0 && <div style={{ fontFamily:'var(--font-mono)',fontSize:11,fontWeight:700,color:'var(--prelev)' }}>↓ {f1(grdPF)}</div>}
-                      {grdIF > 0 && <div style={{ fontFamily:'var(--font-mono)',fontSize:10,color:'var(--inj)' }}>↑ {f1(grdIF)}</div>}
-                      {grdPF === 0 && grdIF === 0 && <span style={{ color:'var(--border-strong)',fontSize:11 }}>—</span>}
-                    </td>
-
-                    {/* GRD flex */}
-                    <td style={{ textAlign:'right',fontFamily:'var(--font-mono)',fontSize:10,
-                      color:'var(--amber)',padding:'10px 8px' }}>
-                      {grdPFl > 0 ? `+${f1(grdPFl)} ⚡` : <span style={{ color:'var(--border-strong)' }}>—</span>}
-                    </td>
-
-                    {/* Résiduel prél avant→après */}
-                    <td style={{ padding:'10px 6px' }}>
-                      {item.residualBefore != null ? (
-                        <div style={{ display:'flex',alignItems:'center',gap:3 }}>
-                          <MiniBar value={item.withdrawalResidualBefore ?? item.residualBefore}
-                            capacity={item.capAtYear} color="var(--prelev)"/>
-                          <span style={{ fontSize:9,color:'var(--text-muted)',opacity:.4 }}>→</span>
-                          <MiniBar value={item.withdrawalResidualAfter ?? item.residualAfter}
-                            capacity={item.capAtYear} color="var(--prelev)"/>
-                        </div>
-                      ) : (
-                        <span style={{ fontSize:10,color:'var(--text-muted)',fontStyle:'italic' }}>conditionnel</span>
-                      )}
-                    </td>
-
-                    {/* Résiduel injection */}
-                    <td style={{ textAlign:'right',padding:'10px 6px' }}>
-                      {item.injectionResidualBefore != null && item.capRevAtYear > 0 ? (
-                        <span style={{ fontFamily:'var(--font-mono)',fontSize:9,fontWeight:600,
-                          color: item.injectionResidualBefore < 0 ? 'var(--red)'
-                               : item.injectionResidualBefore < 3 ? 'var(--amber)'
-                               : 'var(--inj)' }}>
-                          {f1(item.injectionResidualBefore)}
-                        </span>
-                      ) : <span style={{ color:'var(--border-strong)',fontSize:11 }}>—</span>}
-                    </td>
-
-                    {/* Réservation */}
-                    <td style={{ textAlign:'center',padding:'10px 6px' }}>
-                      <ExpiryChip expiry={item.expiry}/>
-                    </td>
-
-                    {/* Décision */}
-                    <td style={{ textAlign:'center',padding:'10px 6px' }}>
-                      <DecisionBadge decision={item.decision} size="xs"/>
-                    </td>
-
-                    {/* Voir */}
-                    <td style={{ textAlign:'right',paddingRight:12 }}>
-                      <button onClick={() => onNavigate(item.sub.id, 'demandes')} style={{
-                        color:'var(--accent)',fontSize:11,fontWeight:600,background:'none',
-                        border:'none',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap' }}>
-                        Voir →
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer */}
-        <div style={{ padding:'8px 18px',background:'var(--bg-muted)',borderTop:'1px solid var(--border)',
-          display:'flex',flexWrap:'wrap',gap:14,alignItems:'center' }}>
-          {Object.entries(DECISION_CONFIG).map(([k, c]) => (
-            <span key={k} style={{ display:'flex',alignItems:'center',gap:4,fontSize:10,color:'var(--text-muted)' }}>
-              <span style={{ color:c.color,fontWeight:800 }}>{c.icon}</span> {c.label}
-            </span>
-          ))}
-          <span style={{ marginLeft:'auto',fontSize:10,color:'var(--text-muted)',fontStyle:'italic' }}>
-            Résiduel prél. · Conditionnels exclus du calcul
-          </span>
-        </div>
-      </div>
+      <QueueCockpitTable
+        displayedRows={displayedRows}
+        filters={filters}
+        sort={sort}
+        activeStepConfig={activeStepConfig}
+        onOpenMenu={openHeaderMenu}
+        onNavigate={onNavigate}
+        onNavigateToRequest={onNavigateToRequest}
+      />
     </div>
   );
 }

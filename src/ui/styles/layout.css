@@ -160,10 +160,6 @@
 }
 .v3-drawer__body { flex: 1; overflow-y: auto; padding: 0; }
 
-/* ── Legacy compat ── */
-.app-header { display: none; }
-.app-main   { max-width: none; margin: 0; padding: 0; }
-
 /* ═══ Responsive ═══ */
 
 /* Tablet landscape (≤1100px) — sidebar collapses, tighter padding */

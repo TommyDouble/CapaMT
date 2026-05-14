@@ -12,15 +12,15 @@ import {
   buildDirectionalSnapshot,
 } from '../../../engines/directionalSubstation.js';
 import { normalizeSubstations } from '../../../utils/normalize.js';
-import { normalizeStatus } from '../../../utils/normalize.js';
 import { AlertBadge } from '../../shared/badges.jsx';
 import { ALERT_CONFIG } from '../../../constants/index.js';
 import { EvolutionTab } from './tabs/EvolutionTab.jsx';
 import { DemandesQueueTab } from './tabs/DemandesQueueTab.jsx';
-import { ChargeHistoryTab } from './tabs/ChargeHistoryTab.jsx';
+import { ConnectedCapacityTab } from './tabs/ConnectedCapacityTab.jsx';
 import { InvestissementsTab } from './tabs/InvestissementsTab.jsx';
-import { EditRequestPanel } from './EditRequestPanel.jsx';
 import { EditSubstationPanel } from './EditSubstationPanel.jsx';
+import { ModalShell } from '../../shared/ModalShell.jsx';
+import { CustomerRequestForm } from '../requests/components/RequestWorkflowPanels.jsx';
 
 // ── AssumptionsBanner directionnelle ─────────────────────────────────────────
 function AssumptionsBanner({ sub, projects }) {
@@ -30,24 +30,24 @@ function AssumptionsBanner({ sub, projects }) {
   const wv = a.withdrawalView;
 
   return (
-    <div style={{ background: 'var(--navy-10)', border: '1px solid var(--navy-20)', borderRadius: 8,
+    <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 8,
       padding: expanded ? '10px 14px 12px' : '8px 14px', marginBottom: 12, fontSize: 12, transition: 'all .15s' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--navy-60)' }}>
+          <span style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--accent-muted)' }}>
             Hypothèses directionnelles
           </span>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Réf. <strong className="mono" style={{ color: 'var(--navy)' }}>{a.referenceYear}</strong>
+            Réf. <strong className="mono" style={{ color: 'var(--accent)' }}>{a.referenceYear}</strong>
           </span>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Ratio inv. <strong className="mono" style={{ color: 'var(--navy)' }}>×{a.reverseCapacityRatio.toFixed(2)}</strong>
+            Ratio inv. <strong className="mono" style={{ color: 'var(--accent)' }}>×{a.reverseCapacityRatio.toFixed(2)}</strong>
           </span>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Cap. dir. N-1 <strong className="mono" style={{ color: 'var(--navy)' }}>{f1(a.capDirN1)} MVA</strong>
+            Cap. dir. N-1 <strong className="mono" style={{ color: 'var(--accent)' }}>{f1(a.capDirN1)} MVA</strong>
           </span>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Cap. inv. N-1 <strong className="mono" style={{ color: 'var(--navy)' }}>{f1(a.capRevN1)} MVA</strong>
+            Cap. inv. N-1 <strong className="mono" style={{ color: 'var(--accent)' }}>{f1(a.capRevN1)} MVA</strong>
           </span>
           {a.projectsIncluded.length > 0 && (
             <span style={{ color: 'var(--accent)' }}>{a.projectsIncluded.length} projet(s) intégré(s)</span>
@@ -55,7 +55,7 @@ function AssumptionsBanner({ sub, projects }) {
         </div>
         <button type="button" onClick={() => setExpanded(e => !e)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11,
-            color: 'var(--navy-60)', fontFamily: 'inherit', padding: '2px 6px', borderRadius: 4 }}>
+            color: 'var(--accent-muted)', fontFamily: 'inherit', padding: '2px 6px', borderRadius: 4 }}>
           {expanded ? '▲ Réduire' : '▾ Détail'}
         </button>
       </div>
@@ -81,19 +81,6 @@ function AssumptionsBanner({ sub, projects }) {
         </div>
       )}
     </div>
-  );
-}
-
-// ── Badge migration inline ───────────────────────────────────────────────────
-function MigrationBadge() {
-  return (
-    <span className="migration-badge">
-      ⚠ Migré auto
-      <span className="migration-tooltip">
-        Données migrées depuis l'ancien modèle organique.<br/>
-        Enrichir les vues directionnelles via Paramètres.
-      </span>
-    </span>
   );
 }
 
@@ -139,7 +126,7 @@ function DirectionalHeader({ sub, projects }) {
 }
 
 // ── Page principale ────────────────────────────────────────────────────────────
-export function SubstationDetail({ sub, initialTab = 'evolution', onBack, onUpdate, prevViewLabel }) {
+export function SubstationDetail({ sub, initialTab = 'evolution', onBack, onUpdate, prevViewLabel, onNavigateToRequest }) {
   const [tab, setTab]       = useState(initialTab);
   const [editPanel, setEditPanel] = useState(null);
   const [toast, setToast]   = useState(null);
@@ -155,7 +142,7 @@ export function SubstationDetail({ sub, initialTab = 'evolution', onBack, onUpda
     const exists = sub.connectionRequests.find(r => r.id === data.id);
     const reqs = exists
       ? sub.connectionRequests.map(r => r.id === data.id ? data : r)
-      : [...sub.connectionRequests, { ...data, id: uid() }];
+      : [...sub.connectionRequests, { ...data, id: data.id || uid() }];
     onUpdate({ ...sub, connectionRequests: reqs });
     setEditPanel(null);
     showToast('✓ Demande enregistrée');
@@ -164,15 +151,6 @@ export function SubstationDetail({ sub, initialTab = 'evolution', onBack, onUpda
   const handleDelReq = id => {
     onUpdate({ ...sub, connectionRequests: sub.connectionRequests.filter(r => r.id !== id) });
     showToast('Demande supprimée');
-  };
-
-  const handleArchiveReq = (id, newStatus) => {
-    const reqs = sub.connectionRequests.map(r =>
-      r.id === id ? { ...r, status: normalizeStatus(newStatus), raccordementDate: newStatus === 'raccordée' ? new Date().toISOString().slice(0, 10) : r.raccordementDate } : r
-    );
-    onUpdate({ ...sub, connectionRequests: reqs });
-    setEditPanel(null);
-    showToast(`Demande ${newStatus}`);
   };
 
   const handleSaveParams = data => {
@@ -184,7 +162,7 @@ export function SubstationDetail({ sub, initialTab = 'evolution', onBack, onUpda
   const tabs = [
     { id: 'evolution',       label: 'Évolution' },
     { id: 'demandes',        label: 'Demandes' },
-    { id: 'historique',      label: 'Historique' },
+    { id: 'raccordes',       label: 'Raccordés' },
     { id: 'investissements', label: 'Investissements' },
   ];
 
@@ -206,7 +184,6 @@ export function SubstationDetail({ sub, initialTab = 'evolution', onBack, onUpda
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <h2 className="ss-header__name">{sub.name}</h2>
               <AlertBadge level={worst}/>
-              {sub._directionalMigrated && <MigrationBadge />}
               {sub.id.startsWith('ss-new') && <span className="ss-badge-new">✦ Nouvelle SS</span>}
               {sub.status === 'hors_service' && <span className="ss-badge-offline">Hors service</span>}
             </div>
@@ -272,25 +249,35 @@ export function SubstationDetail({ sub, initialTab = 'evolution', onBack, onUpda
           {tab === 'demandes'        && (
             <DemandesQueueTab sub={sub}
               onAdd   ={() => setEditPanel({ mode: 'request', item: null })}
-              onEdit  ={item => setEditPanel({ mode: 'request', item })}
+              onEdit  ={item => item?.id && onNavigateToRequest
+                ? onNavigateToRequest(sub.id, item.id)
+                : setEditPanel({ mode: 'request', item })}
               onDelete={handleDelReq}
-              onUpdate={onUpdate}/>
+              onUpdate={onUpdate}
+              onNavigateToRequest={onNavigateToRequest}/>
           )}
-          {tab === 'historique'      && <ChargeHistoryTab sub={sub} onUpdate={onUpdate}/>}
+          {tab === 'raccordes'       && (
+            <ConnectedCapacityTab sub={sub} onUpdate={onUpdate} onNavigateToRequest={onNavigateToRequest}/>
+          )}
           {tab === 'investissements' && <InvestissementsTab sub={sub}/>}
         </div>
       </div>
 
       {/* Panels */}
       {editPanel?.mode === 'request' && (
-        <EditRequestPanel
-          item={editPanel.item}
-          subName={sub.name}
-          sub={sub}
-          onSave={handleSaveReq}
-          onArchive={handleArchiveReq}
+        <ModalShell
+          title="Nouvelle demande client"
+          subtitle="Création limitée aux données client"
           onClose={() => setEditPanel(null)}
-        />
+          wide
+        >
+          <CustomerRequestForm
+            req={editPanel.item}
+            sub={sub}
+            onSave={handleSaveReq}
+            onClose={() => setEditPanel(null)}
+          />
+        </ModalShell>
       )}
       {editPanel?.mode === 'substationParams' && (
         <EditSubstationPanel

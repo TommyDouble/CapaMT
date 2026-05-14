@@ -1,130 +1,96 @@
-/**
- * engines/statusSummary.js
- *
- * Couche de lecture métier au-dessus des statuts techniques existants.
- * Les statuts techniques (en_étude, étudiée, conditionnel, raccordée…)
- * restent inchangés dans le storage et les moteurs.
- *
- * Ce module les traduit en phases métier lisibles et en contexte narratif.
- *
- * Aucune dépendance React.
- */
+import { computeCapacityImpact } from './capacityImpact.js';
+import { getAssessment, getCustomer, getOffer } from './requestModel.js';
 
-/**
- * Phases métier dans l'ordre du cycle de vie.
- * Un statut technique peut appartenir à une seule phase.
- */
 export const REQUEST_PHASES = {
-  deposee:       { label: 'Déposée',        color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', order: 1 },
-  analysee:      { label: 'Analysée',       color: '#0369a1', bg: '#e0f2fe', border: '#7dd3fc', order: 2 },
-  conditionnelle:{ label: 'Conditionnelle', color: '#92400e', bg: '#fffbeb', border: '#fde68a', order: 3 },
-  acceptable:    { label: 'Acceptable',     color: '#166534', bg: '#f0fdf4', border: '#bbf7d0', order: 4 },
-  raccordee:     { label: 'Raccordée',      color: '#065f46', bg: '#ecfdf5', border: '#6ee7b7', order: 5 },
-  integree:      { label: 'Intégrée à la base', color: '#4c1d95', bg: '#f5f3ff', border: '#c4b5fd', order: 6 },
-  annulee:       { label: 'Annulée',        color: '#ef4444', bg: '#fef2f2', border: '#fecaca', order: 0, strike: true },
+  incomplete: { label: 'À compléter', color: '#d97706', bg: '#fffbeb', border: '#fde68a', order: 1 },
+  deposee: { label: 'Déposée', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', order: 2 },
+  etude: { label: 'En étude', color: '#0369a1', bg: '#e0f2fe', border: '#7dd3fc', order: 3 },
+  conditionnelle: { label: 'Conditionnelle', color: '#92400e', bg: '#fffbeb', border: '#fde68a', order: 4 },
+  acceptable: { label: 'Acceptable', color: '#166534', bg: '#f0fdf4', border: '#bbf7d0', order: 5 },
+  expiree: { label: 'Offre expirée', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', order: 6 },
+  raccordee: { label: 'Raccordée maintenue', color: '#065f46', bg: '#ecfdf5', border: '#6ee7b7', order: 7 },
+  liberee: { label: 'Libérée', color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', order: 0, strike: true },
 };
 
-/** Mapping statut technique → phase métier */
-const STATUS_TO_PHASE = {
-  'en_étude':     'deposee',
-  'étudiée':      'analysee',
-  'conditionnel': 'conditionnelle',
-  'raccordée':    'raccordee',
-  'raccordé':     'raccordee',
-  'annulée':      'annulee',
-  'annulé':       'annulee',
-};
+function finalStatuses(assessment) {
+  return [assessment.final?.load?.status, assessment.final?.injection?.status].filter(Boolean);
+}
 
-/**
- * Résumé métier d'une demande de raccordement.
- *
- * @param {object} req - Demande de raccordement
- * @returns {RequestStatusSummary}
- */
+function derivePhaseKey({ customer, assessment, offer, impact }) {
+  const statuses = finalStatuses(assessment);
+  if (customer.status === 'cancelled' || offer.status === 'offer_cancelled' || impact.status === 'RELEASED') return 'liberee';
+  if (impact.status === 'CONNECTED_RELEASED') return 'liberee';
+  if (offer.status === 'offer_connected') return 'raccordee';
+  if (offer.status === 'offer_expired') return 'expiree';
+  if (offer.status === 'offer_accepted') return 'acceptable';
+  if (statuses.includes('KO')) return 'liberee';
+  if (statuses.includes('LIMIT') || statuses.includes('FULL_FLEX')) return 'conditionnelle';
+  if (assessment.status === 'studied') return 'acceptable';
+  if (assessment.status === 'under_study' || assessment.status === 'blocked') return 'etude';
+  if (customer.status === 'ready_for_study') return 'deposee';
+  return 'incomplete';
+}
+
 export function buildRequestStatusSummary(req) {
   if (!req) return null;
-
-  const status = req.status || 'en_étude';
-
-  // Déterminer la phase métier
-  let phaseKey = STATUS_TO_PHASE[status] ?? 'deposee';
-
-  // Raffinement : une demande étudiée avec décision GRD acceptable → phase 'acceptable'
-  if (phaseKey === 'analysee' && req.grd?.decisionGRD === 'acceptable') {
-    phaseKey = 'acceptable';
-  }
-
-  // Raffinement : une demande raccordée dont la charge a été intégrée → phase 'integree'
-  if (phaseKey === 'raccordee') {
-    const hasHistory = (req.chargeHistoryId || req.integreeEnBase);
-    if (hasHistory) phaseKey = 'integree';
-  }
-
+  const customer = getCustomer(req);
+  const assessment = getAssessment(req);
+  const offer = getOffer(req);
+  const impact = computeCapacityImpact(req);
+  const phaseKey = derivePhaseKey({ customer, assessment, offer, impact });
   const phase = REQUEST_PHASES[phaseKey];
 
-  // Description contextuelle selon la phase
   const descriptions = {
-    deposee:        'La demande a été reçue. L\'étude de raccordement n\'a pas encore débuté.',
-    analysee:       'L\'étude est réalisée. Les paramètres GRD ont été définis.',
-    conditionnelle: 'Le raccordement est conditionnel à un investissement réseau.',
-    acceptable:     'La capacité est disponible. La convention peut être proposée.',
-    raccordee:      'La convention est signée. Le client est raccordé.',
-    integree:       'La charge est intégrée dans la baseline de la sous-station.',
-    annulee:        'La demande a été annulée. La réservation est libérée.',
+    incomplete: 'La demande client doit encore être complétée.',
+    deposee: 'La demande est complète et positionnée pour étude.',
+    etude: 'L’étude technique est en cours ou bloquée par une donnée manquante.',
+    conditionnelle: 'Le raccordement dépend d’une limitation ou d’un projet réseau.',
+    acceptable: 'La capacité est disponible selon la réponse technique ou l’offre acceptée.',
+    expiree: 'L’offre est expirée et doit être traitée explicitement.',
+    raccordee: 'Le client est raccordé et sa capacité reste maintenue temporairement.',
+    liberee: 'Le dossier ne réserve plus de capacité.',
   };
 
-  // Prochaine étape attendue
   const nextSteps = {
-    deposee:        'Lancer l\'étude de raccordement.',
-    analysee:       req.grd?.decisionGRD === 'liste_attente'
-                      ? 'Demande en liste d\'attente — surveiller l\'évolution du résiduel.'
-                      : 'Proposer la convention de raccordement.',
-    conditionnelle: 'Valider le projet réseau associé avant de poursuivre.',
-    acceptable:     'Envoyer la convention et saisir la date de signature.',
-    raccordee:      'Confirmer la mise en service et intégrer la charge à la baseline.',
-    integree:       null,
-    annulee:        null,
+    incomplete: 'Compléter la demande client.',
+    deposee: 'Lancer l’étude de raccordement.',
+    etude: 'Finaliser les réponses techniques attendues.',
+    conditionnelle: 'Valider la condition réseau ou ajuster la réponse.',
+    acceptable: offer.status === 'offer_accepted' ? 'Planifier le raccordement.' : 'Formuler ou suivre l’offre.',
+    expiree: 'Annuler l’offre ou enregistrer une acceptation tardive.',
+    raccordee: null,
+    liberee: null,
   };
 
   return {
-    // Technique
-    statusTechnique: status,
-    hasGrd:          !!req.grd,
-    decisionGRD:     req.grd?.decisionGRD ?? null,
-    // Métier
     phaseKey,
-    phaseLabel:      phase.label,
-    phaseColor:      phase.color,
-    phaseBg:         phase.bg,
-    phaseBorder:     phase.border,
-    phaseOrder:      phase.order,
-    strike:          !!phase.strike,
-    // Narratif
-    description:     descriptions[phaseKey],
-    nextStep:        nextSteps[phaseKey] ?? null,
-    // Dates clés disponibles
-    dateDepot:       req.dateDepot   ?? null,
-    dateOffre:       req.dateOffre   ?? null,
-    dateMES:         req.dateMES     ?? null,
-    raccordementDate: req.raccordementDate ?? null,
+    phaseLabel: phase.label,
+    phaseColor: phase.color,
+    phaseBg: phase.bg,
+    phaseBorder: phase.border,
+    phaseOrder: phase.order,
+    strike: Boolean(phase.strike),
+    description: descriptions[phaseKey],
+    nextStep: nextSteps[phaseKey] ?? null,
+    requestDate: customer.requestDate || null,
+    offerDate: offer.formulatedAt || null,
+    desiredCommissioningDate: customer.requested?.desiredCommissioningDate || null,
+    connectedAt: offer.connectedAt || null,
+    capacityImpact: impact.status,
+    customerStatus: customer.status,
+    assessmentStatus: assessment.status,
+    offerStatus: offer.status,
   };
 }
 
-/**
- * Résumé agrégé des phases pour une liste de demandes.
- * Utile pour les badges de synthèse en tête de page.
- *
- * @param {object[]} requests
- * @returns {{ byPhase: object, total: number }}
- */
 export function buildQueuePhaseSummary(requests) {
-  const byPhase = Object.fromEntries(
-    Object.keys(REQUEST_PHASES).map(k => [k, 0])
-  );
+  const byPhase = Object.fromEntries(Object.keys(REQUEST_PHASES).map(key => [key, 0]));
   let total = 0;
   (requests || []).forEach(req => {
-    const s = buildRequestStatusSummary(req);
-    if (s) { byPhase[s.phaseKey] = (byPhase[s.phaseKey] || 0) + 1; total++; }
+    const summary = buildRequestStatusSummary(req);
+    if (!summary) return;
+    byPhase[summary.phaseKey] = (byPhase[summary.phaseKey] || 0) + 1;
+    total += 1;
   });
   return { byPhase, total };
 }

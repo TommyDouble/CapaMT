@@ -7,7 +7,7 @@ import { FormRow, Section } from '../../shared/forms.jsx';
 import { ModalShell } from '../../shared/ModalShell.jsx';
 
 const SUB_PAR_DEFAULTS = {
-  plannableCapacity:'', baseLoad2025:'', organicGrowthRate:'2.00', notes:'',
+  withdrawalBaseMva:'', withdrawalGrowthPct:'2.00', notes:'',
   tfos:[{id:'T1',power:'',role:'normal'}],
   coeffN:'0.90', coeffN1:'1.00', mtBackupEnabled:false, mtBackupCapacity:'',
   reverseCapacityRatio:'1.00',
@@ -73,13 +73,14 @@ export function EditSubstationPanel({item, subName, onSave, onClose}) {
   const initial = useMemo(() => {
     if (!item) return SUB_PAR_DEFAULTS;
     const tc = item.transformerConfig;
+    const model = item.directionalModel || {};
+    const withdrawalView = model.withdrawalView || {};
     const existingFoison = item.foisonnement || {};
     return {
-      plannableCapacity: item.plannableCapacity,
-      baseLoad2025:      item.baseLoad2025,
-      organicGrowthRate: (item.organicGrowthRate*100).toFixed(2),
+      withdrawalBaseMva: safeNum(withdrawalView.maxHistoricLoadBT, 0),
+      withdrawalGrowthPct: (safeNum(withdrawalView.growthLoadMaxBT, 0) * 100).toFixed(2),
       notes:             item.notes||'',
-      tfos: tc?.transformers?.map(t=>({...t})) || [{id:'T1',power:item.plannableCapacity||'',role:'normal'}],
+      tfos: tc?.transformers?.map(t=>({...t})) || [{id:'T1',power:'',role:'normal'}],
       coeffN:           String(tc?.coeffN   ?? 0.90),
       coeffN1:          String(tc?.coeffN1  ?? 1.00),
       mtBackupEnabled:  tc?.mtBackup?.enabled  || false,
@@ -105,8 +106,8 @@ export function EditSubstationPanel({item, subName, onSave, onClose}) {
 
   const validate = () => {
     const e = {};
-    if (!form.baseLoad2025||parseFloat(form.baseLoad2025)<0) e.load='Valeur ≥ 0 requise';
-    const r=parseFloat(form.organicGrowthRate);
+    if (form.withdrawalBaseMva === '' || parseFloat(form.withdrawalBaseMva)<0) e.load='Valeur ≥ 0 requise';
+    const r=parseFloat(form.withdrawalGrowthPct);
     if(isNaN(r)||r<0||r>20) e.rate='Taux entre 0 et 20 %/an';
     const validTfos=(form.tfos||[]).filter(t=>parseFloat(t.power)>0);
     if(!validTfos.length) e.tfos='Au moins un transformateur avec puissance > 0 requis';
@@ -127,8 +128,21 @@ export function EditSubstationPanel({item, subName, onSave, onClose}) {
       reverseCapacityRatio:parseFloat(form.reverseCapacityRatio)||1.0,
       mtBackup:{enabled:!!form.mtBackupEnabled,capacity:parseFloat(form.mtBackupCapacity)||0}};
     const foison=Object.fromEntries(Object.keys(FOISON_DEFAULTS).map(t=>[t,parseFloat(form.foison?.[t])||FOISON_DEFAULTS[t]]));
-    onSave({baseLoad2025:parseFloat(form.baseLoad2025), organicGrowthRate:parseFloat(form.organicGrowthRate)/100,
-      notes:form.notes||'', transformerConfig:tc, plannableCapacity:calcCapacityN1(tc), foisonnement:foison});
+    const previousModel = item?.directionalModel || {};
+    const previousWithdrawal = previousModel.withdrawalView || {};
+    const previousInjection = previousModel.injectionView || {};
+    const growth = parseFloat(form.withdrawalGrowthPct) / 100;
+    onSave({
+      directionalModel: {
+        referenceYear: safeNum(previousModel.referenceYear, 2025),
+        withdrawalView: {
+          ...previousWithdrawal,
+          maxHistoricLoadBT: parseFloat(form.withdrawalBaseMva),
+          growthLoadMaxBT: growth,
+        },
+        injectionView: previousInjection,
+      },
+      notes:form.notes||'', transformerConfig:tc, foisonnement:foison});
   };
 
   return (
@@ -144,15 +158,15 @@ export function EditSubstationPanel({item, subName, onSave, onClose}) {
         </>
       }
     >
-            <Section title="Charge & Croissance" color="var(--navy)">
+            <Section title="Modèle directionnel" color="var(--accent)">
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                <FormRow label="Charge de référence 2025 (MVA)" error={errors.load}>
-                  <input type="number" step=".1" value={form.baseLoad2025||''}
-                    onChange={e=>set('baseLoad2025',e.target.value)} className="input-field"/>
+                <FormRow label="Base prélèvement BT 2025 (MVA)" error={errors.load}>
+                  <input type="number" step=".1" value={form.withdrawalBaseMva||''}
+                    onChange={e=>set('withdrawalBaseMva',e.target.value)} className="input-field"/>
                 </FormRow>
-                <FormRow label="Taux de croissance central (%/an)" error={errors.rate}>
-                  <input type="number" step=".1" value={form.organicGrowthRate||''}
-                    onChange={e=>set('organicGrowthRate',e.target.value)} className="input-field"/>
+                <FormRow label="Croissance prélèvement BT (%/an)" error={errors.rate}>
+                  <input type="number" step=".1" value={form.withdrawalGrowthPct||''}
+                    onChange={e=>set('withdrawalGrowthPct',e.target.value)} className="input-field"/>
                 </FormRow>
               </div>
             </Section>
@@ -190,7 +204,7 @@ export function EditSubstationPanel({item, subName, onSave, onClose}) {
                   mtBackup:{enabled:!!form.mtBackupEnabled,capacity:parseFloat(form.mtBackupCapacity)||0},
                 };
                 return (
-                  <div style={{marginTop:12,background:'var(--navy-10)',border:'1px solid var(--navy-20)',borderRadius:8,padding:'8px 14px',display:'flex',gap:20}}>
+                  <div style={{marginTop:12,background:'var(--accent-soft)',border:'1px solid var(--accent-border)',borderRadius:8,padding:'8px 14px',display:'flex',gap:20}}>
                     <span style={{fontSize:12,fontWeight:700,color:'var(--accent)'}}>Résultant :</span>
                     <span style={{fontSize:12,fontFamily:'var(--font-mono)'}}>N = {f1(calcCapacityN(tc))} MVA</span>
                     <span style={{fontSize:12,fontFamily:'var(--font-mono)'}}>N-1 = {f1(calcCapacityN1(tc))} MVA</span>

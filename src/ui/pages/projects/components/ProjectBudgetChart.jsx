@@ -3,6 +3,7 @@
  * Extracted from NetworkProjectsPage.
  */
 import React, { useRef, useEffect } from 'react';
+import Chart from 'chart.js/auto';
 import { YEARS } from '../../../../constants/index.js';
 import { getChartTheme } from '../../../shared/chartTheme.js';
 

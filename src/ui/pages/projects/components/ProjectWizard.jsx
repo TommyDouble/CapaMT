@@ -29,12 +29,13 @@ export function ProjectWizard({ project, substations, allSubstations, onSave, on
 
       if (createEff) {
         const ns = createEff.newSS;
+        const wv = ns.directionalModel?.withdrawalView || {};
         blocks.push({
           _id: uid(), blockType: 'création', _newSsId: ssId,
           name: ns.name || '', code: ns.code || '', commune: ns.commune || '',
           voltageUpstream: ns.voltageUpstream || '36kV',
-          baseLoadInitial: String(ns.baseLoadInitial || 0),
-          organicGrowthRate: String(((ns.organicGrowthRate || 0.015) * 100).toFixed(2)),
+          initialLoadMva: String(wv.maxHistoricLoadBT || 0),
+          growthRatePct: String(((wv.growthLoadMaxBT || 0.015) * 100).toFixed(2)),
           tfos: (ns.transformerConfig?.transformers || []).map(t => ({ ...t, power: String(t.power) })),
           coeffN: String(ns.transformerConfig?.coeffN || 0.90),
           coeffN1: String(ns.transformerConfig?.coeffN1 || 1.00),
@@ -102,7 +103,7 @@ export function ProjectWizard({ project, substations, allSubstations, onSave, on
       setBlocks(bs => [...bs, {
         _id: uid(), blockType: 'création',
         name: '', code: '', commune: '', voltageUpstream: '36kV',
-        baseLoadInitial: '0', organicGrowthRate: '1.5',
+        initialLoadMva: '0', growthRatePct: '1.5',
         tfos: [{ id: 'T1', power: '', role: 'normal' }],
         coeffN: '0.90', coeffN1: '1.00', loadDelta: '',
       }]);

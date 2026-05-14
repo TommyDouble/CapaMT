@@ -9,8 +9,8 @@ import React, { useState } from 'react';
 import { PROJ_STATUSES, YEARS } from '../../../constants/index.js';
 import { f1, statusLabel } from '../../../utils/format.js';
 import { useProjects } from '../../App.jsx';
-import { getFirstSatYearRigid, isSubstationAtRisk } from '../../../engines/load.js';
 import { getFirstInjectionSaturationYear, getFirstWithdrawalSaturationYear } from '../../../engines/directionalSubstation.js';
+import { isSubstationAtRisk } from '../../../engines/alerts.js';
 import { ProjectBudgetChart } from './components/ProjectBudgetChart.jsx';
 import { ProjectWizard } from './components/ProjectWizard.jsx';
 
@@ -97,8 +97,8 @@ export function NetworkProjectsPage({ substations, allSubstations, projects, onN
           </p>
           <div className="flex flex-wrap gap-3">
             {atRisk.map(sub => {
-              const satNominal = getFirstSatYearRigid(sub, 1.0, projects);
-              const satRisk = getFirstSatYearRigid(sub, 1.0, projects.filter(p => p.status !== 'planifié'));
+              const satNominal = getFirstWithdrawalSaturationYear(sub, projects);
+              const satRisk = getFirstWithdrawalSaturationYear(sub, projects.filter(p => p.status !== 'planifié'));
               return (
                 <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-raised)', borderRadius: 6, padding: '5px 10px', fontSize: 11, border: '1px solid rgba(220,38,38,.15)' }}>
                   <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{sub.name}</span>

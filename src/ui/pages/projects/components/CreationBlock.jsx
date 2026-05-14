@@ -40,14 +40,14 @@ export function CreationBlock({ block, onChange, onRemove }) {
               {UPSTREAM_LEVELS.map(l => <option key={l}>{l}</option>)}
             </select>
           </FormRow>
-          <FormRow label="Charge initiale (MVA)" hint="Avant transferts de charge">
-            <input type="number" step="0.1" value={block.baseLoadInitial}
-              onChange={e => onChange({ ...block, baseLoadInitial: e.target.value })}
+          <FormRow label="Base prélèvement initiale (MVA)" hint="Alimente le modèle directionnel de départ">
+            <input type="number" step="0.1" value={block.initialLoadMva}
+              onChange={e => onChange({ ...block, initialLoadMva: e.target.value })}
               placeholder="Ex: 0" className="input-field" />
           </FormRow>
-          <FormRow label="Croissance organique (%/an)">
-            <input type="number" step="0.1" value={block.organicGrowthRate}
-              onChange={e => onChange({ ...block, organicGrowthRate: e.target.value })}
+          <FormRow label="Croissance prélèvement (%/an)">
+            <input type="number" step="0.1" value={block.growthRatePct}
+              onChange={e => onChange({ ...block, growthRatePct: e.target.value })}
               placeholder="Ex: 1.5" className="input-field" />
           </FormRow>
         </div>

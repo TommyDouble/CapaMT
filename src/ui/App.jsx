@@ -14,7 +14,7 @@ import {
   saveState, clearState, hydrateInitialAppState,
 } from '../services/storage.js';
 import { getEffectiveSubstations }     from '../engines/capacity.js';
-import { normalizeStatus, normalizeSubstations } from '../utils/normalize.js';
+import { normalizeProjects, normalizeStatus, normalizeSubstations } from '../utils/normalize.js';
 
 // Shell
 import { ThemeProvider }               from './shell/ThemeToggle.jsx';
@@ -27,6 +27,7 @@ import { SubstationList }              from './pages/substations/SubstationListP
 import { SubstationDetail }            from './pages/substations/SubstationDetail.jsx';
 import { GlobalQueuePage }             from './pages/queue/GlobalQueuePage.jsx';
 import { NetworkProjectsPage }         from './pages/projects/NetworkProjectsPage.jsx';
+import { RequestCasePage }             from './pages/requests/RequestCasePage.jsx';
 
 // Modals & drawers
 import { SaisieModal }                 from './pages/intake/SaisieModal.jsx';
@@ -51,8 +52,8 @@ function App() {
 
   // ── Navigation (hook) ──────────────────────────────────────────────────────
   const {
-    view, navActive, selectedId, selectedTab, prevLabel,
-    nav, handleSelect, handleBack,
+    view, navActive, selectedId, selectedTab, selectedReqId, prevLabel,
+    nav, handleSelect, handleBack, navigateToRequest,
   } = useNavigation();
 
   // ── Modals ─────────────────────────────────────────────────────────────────
@@ -77,6 +78,14 @@ function App() {
   // ── Data handlers ──────────────────────────────────────────────────────────
   const handleUpdate = updated =>
     setSubstations(prev => prev.map(s => s.id === updated.id ? normalizeSubstations([updated])[0] : s));
+
+  const handleAddActivity = entry =>
+    setActivityLog(prev => [{
+      id: uid(),
+      timestamp: new Date().toISOString(),
+      entryType: 'request_activity',
+      ...entry,
+    }, ...prev].slice(0, 100));
 
   const handleUpdateProject = updated =>
     setNetworkProjects(prev => prev.map(p => p.id === updated.id ? { ...updated, status: normalizeStatus(updated.status) } : p));
@@ -113,8 +122,8 @@ function App() {
   };
 
   const handleReset = () => {
-    setSubstations(INITIAL_SUBSTATIONS);
-    setNetworkProjects(INITIAL_NETWORK_PROJECTS);
+    setSubstations(normalizeSubstations(INITIAL_SUBSTATIONS));
+    setNetworkProjects(normalizeProjects(INITIAL_NETWORK_PROJECTS));
     setActivityLog([]);
     clearState();
     setSessionBanner(false);
@@ -156,7 +165,11 @@ function App() {
 
             {view === 'overview'        && <Overview substations={allSubstations} onNavigate={handleSelect} />}
             {view === 'list'            && <SubstationList substations={allSubstations} onSelect={handleSelect} />}
-            {view === 'file_attente'    && <GlobalQueuePage substations={allSubstations} onNavigate={handleSelect} />}
+            {view === 'file_attente'    && (
+              <GlobalQueuePage substations={allSubstations} onNavigate={handleSelect}
+                onNavigateToRequest={navigateToRequest}
+                onAdd={() => setShowSaisie(true)} />
+            )}
             {view === 'investissements' && (
               <NetworkProjectsPage substations={substations} allSubstations={allSubstations}
                 projects={networkProjects} onNavigate={handleSelect}
@@ -165,7 +178,21 @@ function App() {
             )}
             {view === 'detail' && selected && (
               <SubstationDetail sub={selected} initialTab={selectedTab}
-                onBack={handleBack} onUpdate={handleUpdate} prevViewLabel={prevLabel} />
+                onBack={handleBack} onUpdate={handleUpdate} prevViewLabel={prevLabel}
+                onNavigateToRequest={navigateToRequest} />
+            )}
+            {view === 'request_case' && selected && (
+              <RequestCasePage
+                sub={selected}
+                reqId={selectedReqId}
+                projects={networkProjects}
+                activityLog={activityLog}
+                onBack={handleBack}
+                onUpdate={handleUpdate}
+                onActivity={handleAddActivity}
+                onLogDelete={handleLogDelete}
+                prevViewLabel={prevLabel}
+              />
             )}
           </div>
         </div>

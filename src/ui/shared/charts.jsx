@@ -2,7 +2,7 @@ import React from 'react';
 import { ALERT_CONFIG, DECISION_CONFIG, TYPE_COLORS, STATUS_COLORS,
          INJ_SOURCES, PREV_USAGES } from '../../constants/index.js';
 import { f1, pct, statusLabel, fmtShortDate } from '../../utils/format.js';
-import { getAlertLevel } from '../../engines/load.js';
+import { getAlertLevel } from '../../engines/alerts.js';
 
 /** Single utilisation bar (rigide N-1). */
 export function UtilBar({ rateRigid }) {

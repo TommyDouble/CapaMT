@@ -10,11 +10,12 @@ const VIEW_LABELS = {
   file_attente:    "File d'attente",
   investissements: 'Projets réseau',
   detail:          null,
+  request_case:    'Dossier demande',
 };
 
 export function Topbar({ view, detailName, onBack }) {
-  const isDetail = view === 'detail';
-  const label = isDetail ? detailName : (VIEW_LABELS[view] || view);
+  const isDetail = view === 'detail' || view === 'request_case';
+  const label = view === 'detail' ? detailName : (VIEW_LABELS[view] || view);
 
   return (
     <header className="v3-topbar">

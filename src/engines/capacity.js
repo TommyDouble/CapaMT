@@ -5,7 +5,7 @@
  * calcCapacityN         — capacité en exploitation normale
  * calcCapacityN1        — capacité après perte du plus gros transformateur
  * getEffectiveTfoConfig — config tfo après effets des projets réseau
- * getCapacityAtYear     — capacité N-1 plannable effective à une année
+ * getCapacityAtYear     — capacité N-1 effective à une année
  * getCapacityNAtYear    — capacité N effective à une année
  * getEffectiveSubstations — liste des SS après create_ss / decommission
  */
@@ -85,19 +85,14 @@ export function getEffectiveTfoConfig(sub, projects, year) {
   return base;
 }
 
-/** Capacité N-1 plannable effective à une année (avec projets réseau). */
+/** Capacité N-1 effective à une année (avec projets réseau). */
 export function getCapacityAtYear(sub, year, projects = []) {
   const tfoConfig = getEffectiveTfoConfig(sub, projects, year);
   if (tfoConfig) {
     const base = calcCapacityN1(tfoConfig);
-    return base !== null ? Math.max(0, base) : Math.max(0, sub.plannableCapacity);
+    return base !== null ? Math.max(0, base) : 0;
   }
-  // Fallback : ancienne logique investments[]
-  return Math.max(0, sub.plannableCapacity +
-    (sub.investments || [])
-      .filter(i => i.year <= year && i.status !== 'annulé')
-      .reduce((s, i) => s + safeNum(i.capacityAdded, 0), 0)
-  );
+  return 0;
 }
 
 /** Capacité N effective à une année (peut être null si pas de config tfo). */
@@ -123,11 +118,7 @@ export function getEffectiveSubstations(baseSubstations, projects, year) {
         if (eff.action === 'create_ss' && eff.newSS && !ssMap[eff.newSS.id]) {
           ssMap[eff.newSS.id] = {
             ...eff.newSS,
-            baseLoad2025:       eff.newSS.baseLoadInitial || 0,
-            plannableCapacity:  calcCapacityN1(eff.newSS.transformerConfig) || 0,
             connectionRequests: [],
-            investments:        [],
-            chargeHistory:      [],
           };
         }
         if (eff.action === 'decommission' && ssMap[eff.ssId]) {

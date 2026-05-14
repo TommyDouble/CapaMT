@@ -157,7 +157,7 @@ export function RenforcementBlock({ block, substations, onChange, onRemove }) {
               <span className="capacity-preview__label">Capacités résultantes :</span>
               <span className="capacity-preview__value">N = {f1(cN)} MVA</span>
               <span className="capacity-preview__value">N-1 = {f1(cN1)} MVA</span>
-              {ss && <span className="text-xs text-gray-400">(actuel : N-1 = {f1(ss.plannableCapacity)} MVA)</span>}
+              {ss && <span className="text-xs text-gray-400">(actuel : N-1 = {f1(calcCapacityN1(ss.transformerConfig))} MVA)</span>}
             </div>
           );
         })()}

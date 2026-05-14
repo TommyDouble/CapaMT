@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { getGlobalQueueStats } from '../../engines/queue.js';
-import { isSubstationAtRisk } from '../../engines/load.js';
+import { isSubstationAtRisk } from '../../engines/alerts.js';
 import { ThemeToggle } from './ThemeToggle.jsx';
 import { ExportImportMenu } from '../shared/ExportImportMenu.jsx';
 

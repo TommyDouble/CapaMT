@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityLog } from '../pages/intake/SaisiePage.jsx';
+import { ActivityLogList } from './ActivityLogList.jsx';
 
 /**
  * Slide-in drawer for the activity log.
@@ -31,7 +31,7 @@ export function ActivityLogDrawer({ show, onClose, activityLog, onLogDelete, onN
         </div>
         <div className="v3-drawer__body">
           {activityLog.length > 0 ? (
-            <ActivityLog log={activityLog} onDelete={onLogDelete} onNavigate={handleNavigate} />
+            <ActivityLogList log={activityLog} onDelete={onLogDelete} onNavigate={handleNavigate} />
           ) : (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
               Aucune saisie dans cette session.

@@ -4,6 +4,7 @@
  * No emoji in titles. Professional data hierarchy.
  */
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { YEARS, ALERT_CONFIG } from '../../../constants/index.js';
 import { f1 } from '../../../utils/format.js';
 import { useProjects } from '../../App.jsx';
@@ -11,19 +12,21 @@ import {
   getCapacityAtYear, getEffectiveSubstations, getCapacityNAtYear,
 } from '../../../engines/capacity.js';
 import {
-  getUtilizationWithdrawalRigid, getUtilizationWithdrawalTotal, getFullAlertState, getAlertLevel,
-  getWorstAlertRigid, getFirstSatYearRigid,
-  getNetRigidLoad, getNetTotalLoad, getResidualRigid,
+  getUtilizationWithdrawalRigid, getUtilizationWithdrawalTotal,
   getUtilizationInjectionRigid,
-} from '../../../engines/load.js';
+  getWithdrawalRigid, getWithdrawalTotal,
+  getResidualWithdrawalRigid,
+} from '../../../engines/directionalSubstation.js';
 import {
   getInjectionRigid, getFirstInjectionSaturationYear,
 } from '../../../engines/directionalSubstation.js';
+import { getAlertLevel, getFirstWithdrawalSaturation } from '../../../engines/alerts.js';
 import { getGlobalQueueStats, getQueueAnalysis } from '../../../engines/queue.js';
 import { AlertBadge, DecisionBadge, ExpiryChip } from '../../shared/badges.jsx';
 import { DualCellBadge } from '../../shared/charts.jsx';
 import { Sparkline } from '../../shared/Sparkline.jsx';
 import { reqClientPrelevTotal, reqClientPrelevFlexible } from '../../../engines/requests.js';
+import { getCustomer } from '../../../engines/requestModel.js';
 
 // ── KPI Strip Item ────────────────────────────────────────────────────────────
 function KpiStrip({ label, value, sub, color, alert, sparkValues, onClick, delay = 0 }) {
@@ -55,7 +58,35 @@ function KpiStrip({ label, value, sub, color, alert, sparkValues, onClick, delay
 function SaturationMatrix({ substations, onNavigate }) {
   const projects = useProjects();
   const [hoveredCell, setHoveredCell] = useState(null);
+  const [tooltip, setTooltip] = useState(null);
   const active = substations.filter(s => s.status !== 'hors_service');
+
+  const showTooltip = (event, data) => {
+    if (typeof window === 'undefined') return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const estimatedWidth = 244;
+    const estimatedHeight = 150;
+    const margin = 12;
+    const left = Math.min(
+      Math.max(rect.left + rect.width / 2 - estimatedWidth / 2, margin),
+      Math.max(margin, window.innerWidth - estimatedWidth - margin)
+    );
+    const hasRoomAbove = rect.top - estimatedHeight - margin > 0;
+    setHoveredCell({ ssId: data.sub.id, year: data.year });
+    setTooltip({
+      ...data,
+      position: {
+        left,
+        top: hasRoomAbove ? rect.top - 8 : rect.bottom + 8,
+        placement: hasRoomAbove ? 'above' : 'below',
+      },
+    });
+  };
+
+  const hideTooltip = () => {
+    setHoveredCell(null);
+    setTooltip(null);
+  };
 
   return (
     <div className="card" style={{ overflow: 'hidden' }}>
@@ -83,7 +114,7 @@ function SaturationMatrix({ substations, onNavigate }) {
             {active.map((sub, i) => {
               const residuals = YEARS.map(y => {
                 const cap = getCapacityAtYear(sub, y, projects);
-                const net = getNetRigidLoad(sub, y, 1.0, false, projects);
+                const net = Math.max(0, getWithdrawalRigid(sub, y, false, projects));
                 return +(cap - net).toFixed(1);
               });
               // Injection: first year with reverse flow for this SS
@@ -110,8 +141,8 @@ function SaturationMatrix({ substations, onNavigate }) {
                   {YEARS.map(y => {
                     const rR = getUtilizationWithdrawalRigid(sub, y, projects);
                     const cap = getCapacityAtYear(sub, y, projects);
-                    const net = getNetRigidLoad(sub, y, 1.0, false, projects);
-                    const netT = getNetTotalLoad(sub, y, 1.0, false, projects);
+                    const net = Math.max(0, getWithdrawalRigid(sub, y, false, projects));
+                    const netT = Math.max(0, getWithdrawalTotal(sub, y, false, projects));
                     const res = +(cap - net).toFixed(1);
                     const level = getAlertLevel(rR);
                     const c = ALERT_CONFIG[level];
@@ -125,8 +156,8 @@ function SaturationMatrix({ substations, onNavigate }) {
                     const hasReverse = iR < 0;
                     return (
                       <td key={y} style={{ padding: '3px', textAlign: 'center', position: 'relative' }}
-                        onMouseEnter={() => setHoveredCell({ ssId: sub.id, year: y })}
-                        onMouseLeave={() => setHoveredCell(null)}>
+                        onMouseEnter={event => showTooltip(event, { sub, year: y, cap, net, res, c, hasReverse, uIR, invProjects })}
+                        onMouseLeave={hideTooltip}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                           <span style={{
                             display: 'inline-block', minWidth: 42, textAlign: 'center',
@@ -146,30 +177,6 @@ function SaturationMatrix({ substations, onNavigate }) {
                             }} title={`Inversion: ${(uIR*100).toFixed(0)}%`} />
                           )}
                         </div>
-                        {isHovered && (
-                          <div className="sat-tooltip" style={{ width: 220 }}>
-                            <p style={{ fontWeight: 800, marginBottom: 5, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{sub.name} · {y}</p>
-                            <p style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Cap. dir. N-1 : <strong style={{ color: 'var(--text-primary)' }}>{f1(cap)} MVA</strong></p>
-                            <p style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Charge rigide : <strong style={{ color: c.text }}>{f1(net)} MVA</strong></p>
-                            <p style={{ color: res < 0 ? 'var(--red)' : res < 5 ? 'var(--amber)' : 'var(--green)', fontWeight: 700 }}>
-                              Résiduel prél. : {f1(res)} MVA
-                            </p>
-                            {/* Injection section in tooltip */}
-                            {(hasReverse || uIR > 0) && (
-                              <div style={{ borderTop: '1px solid var(--border)', marginTop: 4, paddingTop: 4 }}>
-                                <p style={{ color: 'var(--inj)', fontWeight: 700, fontSize: 10 }}>
-                                  Injection : {(uIR*100).toFixed(0)}% util. inv.
-                                  {hasReverse && <span style={{ marginLeft: 3 }}>← inversion</span>}
-                                </p>
-                              </div>
-                            )}
-                            {invProjects.length > 0 && (
-                              <p style={{ fontSize: 9, color: 'var(--accent)', borderTop: '1px solid var(--border)', paddingTop: 3, marginTop: 3 }}>
-                                Projet : {invProjects.map(p => p.name).join(', ')}
-                              </p>
-                            )}
-                          </div>
-                        )}
                       </td>
                     );
                   })}
@@ -193,6 +200,43 @@ function SaturationMatrix({ substations, onNavigate }) {
           Inversion de flux
         </span>
       </div>
+      {tooltip && createPortal(<SaturationTooltip tooltip={tooltip} />, document.body)}
+    </div>
+  );
+}
+
+function SaturationTooltip({ tooltip }) {
+  const { sub, year, cap, net, res, c, hasReverse, uIR, invProjects, position } = tooltip;
+  return (
+    <div
+      className="sat-tooltip"
+      style={{
+        position: 'fixed',
+        left: position.left,
+        top: position.top,
+        transform: position.placement === 'above' ? 'translateY(-100%)' : 'none',
+        width: 220,
+      }}
+    >
+      <p style={{ fontWeight: 800, marginBottom: 5, fontFamily: 'var(--font-mono)', fontSize: 11 }}>{sub.name} · {year}</p>
+      <p style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Cap. dir. N-1 : <strong style={{ color: 'var(--text-primary)' }}>{f1(cap)} MVA</strong></p>
+      <p style={{ color: 'var(--text-muted)', marginBottom: 2 }}>Charge rigide : <strong style={{ color: c.text }}>{f1(net)} MVA</strong></p>
+      <p style={{ color: res < 0 ? 'var(--red)' : res < 5 ? 'var(--amber)' : 'var(--green)', fontWeight: 700 }}>
+        Résiduel prél. : {f1(res)} MVA
+      </p>
+      {(hasReverse || uIR > 0) && (
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: 4, paddingTop: 4 }}>
+          <p style={{ color: 'var(--inj)', fontWeight: 700, fontSize: 10 }}>
+            Injection : {(uIR*100).toFixed(0)}% util. inv.
+            {hasReverse && <span style={{ marginLeft: 3 }}>← inversion</span>}
+          </p>
+        </div>
+      )}
+      {invProjects.length > 0 && (
+        <p style={{ fontSize: 9, color: 'var(--accent)', borderTop: '1px solid var(--border)', paddingTop: 3, marginTop: 3 }}>
+          Projet : {invProjects.map(p => p.name).join(', ')}
+        </p>
+      )}
     </div>
   );
 }
@@ -293,7 +337,7 @@ export function Overview({ substations, onNavigate }) {
                 onMouseLeave={e => { e.currentTarget.style.background = ''; }}>
                 <ExpiryChip expiry={item.expiry} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 12 }}>{item.req.name}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 12 }}>{getCustomer(item.req).client?.name || item.req.id}</span>
                   <span style={{ color: 'var(--text-muted)', fontSize: 10, margin: '0 5px' }}>·</span>
                   <button onClick={() => onNavigate(item.sub.id, 'file')}
                     style={{ color: 'var(--accent)', fontSize: 10, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
@@ -327,7 +371,7 @@ export function Overview({ substations, onNavigate }) {
           </h3>
           <div className="space-y-2">
             {criticals.map(s => {
-              const sat = getFirstSatYearRigid(s, 1.0, projects);
+              const sat = getFirstWithdrawalSaturation(s, projects);
               return (
                 <div key={s.id} style={{ background: ALERT_CONFIG.critical.bg, border: `1px solid ${ALERT_CONFIG.critical.border}`, borderRadius: 8, padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
@@ -337,7 +381,7 @@ export function Overview({ substations, onNavigate }) {
                     </div>
                     <p style={{ fontSize: 11, marginTop: 3, color: ALERT_CONFIG.critical.text }}>
                       Saturation rigide en <strong>{sat}</strong> · Résiduel :&nbsp;
-                      <strong style={{ fontFamily: 'var(--font-mono)' }}>{f1(getResidualRigid(s, sat || 2026, 1.0, projects))} MVA</strong>
+                      <strong style={{ fontFamily: 'var(--font-mono)' }}>{f1(getResidualWithdrawalRigid(s, sat || 2026, projects))} MVA</strong>
                       {!projects.some(p => p.status !== 'annulé' && (p.effects || []).some(e => e.ssId === s.id)) &&
                         <span style={{ marginLeft: 6, fontWeight: 600 }}>· Aucun projet planifié</span>}
                     </p>

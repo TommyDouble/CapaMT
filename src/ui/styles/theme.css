@@ -78,11 +78,9 @@
   --bar-inj-ferme:    rgba(13,148,136,.75);
   --bar-inj-flex:     rgba(13,148,136,.35);
 
-  /* ── Navy legacy compat ── */
-  --navy:    #2563EB;
-  --navy-10: rgba(37,99,235,.06);
-  --navy-20: rgba(37,99,235,.14);
-  --navy-60: rgba(37,99,235,.55);
+  --accent-soft: rgba(37,99,235,.06);
+  --accent-border: rgba(37,99,235,.14);
+  --accent-muted: rgba(37,99,235,.55);
 
   --slate: #F5F6F8;
   --cyan-sem: #0891B2;
@@ -160,7 +158,9 @@
   --bar-inj-ferme:    rgba(45,212,191,.70);
   --bar-inj-flex:     rgba(45,212,191,.30);
 
-  --navy: #93C5FD; --navy-10: rgba(147,197,253,.08); --navy-20: rgba(147,197,253,.16); --navy-60: rgba(147,197,253,.50);
+  --accent-soft: rgba(147,197,253,.08);
+  --accent-border: rgba(147,197,253,.16);
+  --accent-muted: rgba(147,197,253,.50);
   --slate: #171D2D;
   --pn-bg: rgba(245,158,11,.08); --pn-border: rgba(245,158,11,.18); --pn-text: #FBBF24;
 }
