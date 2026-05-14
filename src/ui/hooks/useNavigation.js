@@ -10,6 +10,7 @@ const PREV_LABELS = {
   overview:        "la vue d'ensemble",
   file_attente:    "la file d'attente",
   investissements: 'le portefeuille',
+  carte:           'la carte',
   detail:          'la sous-station',
   request_case:    'le dossier',
 };

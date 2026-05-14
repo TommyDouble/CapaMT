@@ -65,6 +65,7 @@ function customer({
   subId, name, reference, type, requestDate, readyForStudyAt,
   load = 0, injection = 0, year, mes, city, siteLabel,
   loadItems = [], injectionItems = [], statusOverride,
+  coordinates,
 }) {
   const complete = requestDate && (load + injection > 0) && mes;
   return {
@@ -79,7 +80,7 @@ function customer({
       label: siteLabel || name,
       commune: city || '',
       address: address(city || ''),
-      coordinates: { lat: '', lng: '', source: 'manual' },
+      coordinates: coordinates || { lat: '', lng: '', source: 'manual' },
     },
     requested: {
       direction: load > 0 && injection > 0 ? 'BOTH' : injection > 0 ? 'INJECTION' : 'LOAD',
@@ -183,6 +184,7 @@ const SUBSTATION_SPECS = [
     voltageUpstream: '63kV',
     transformerPower: 40,
     reverseCapacityRatio: 1.0,
+    coordinates: { lat: 50.6820, lng: 5.5710 },
     withdrawal: { maxHistoricLoadBT: 18, maxHistoricLoadMT: 11, minHistoricInjectionBT: 1, minHistoricInjectionMT: 0, growthLoadMaxBT: 0.020, growthLoadMaxMT: 0.020, growthMinInjectionBT: 0, growthMinInjectionMT: 0 },
     injection: { maxHistoricInjectionBT: 2.5, maxHistoricInjectionMT: 0.5, minHistoricLoadBT: 10, minHistoricLoadMT: 5, growthMaxInjectionBT: 0.050, growthMaxInjectionMT: 0.020, growthMinLoadBT: 0.010, growthMinLoadMT: 0.010 },
     notes: 'Poste urbain dense. Jeu de donnees de demo: conditions locales et reseau disponibles.',
@@ -197,6 +199,7 @@ const SUBSTATION_SPECS = [
     voltageUpstream: '36kV',
     transformerPower: 25,
     reverseCapacityRatio: 0.9,
+    coordinates: { lat: 50.6050, lng: 5.5000 },
     withdrawal: { maxHistoricLoadBT: 13.0, maxHistoricLoadMT: 9.0, minHistoricInjectionBT: 0.8, minHistoricInjectionMT: 0, growthLoadMaxBT: 0.012, growthLoadMaxMT: 0.012, growthMinInjectionBT: 0, growthMinInjectionMT: 0 },
     injection: { maxHistoricInjectionBT: 0.5, maxHistoricInjectionMT: 0.0, minHistoricLoadBT: 5.0, minHistoricLoadMT: 3.5, growthMaxInjectionBT: 0.030, growthMaxInjectionMT: 0, growthMinLoadBT: 0.010, growthMinLoadMT: 0.010 },
     notes: 'Poste industriel proche saturation. Projet T3 local et depart MT de demonstration.',
@@ -211,6 +214,7 @@ const SUBSTATION_SPECS = [
     voltageUpstream: '63kV',
     transformerPower: 40,
     reverseCapacityRatio: 0.85,
+    coordinates: { lat: 50.6650, lng: 5.6200 },
     withdrawal: { maxHistoricLoadBT: 11.5, maxHistoricLoadMT: 7.0, minHistoricInjectionBT: 0.5, minHistoricInjectionMT: 0, growthLoadMaxBT: 0.026, growthLoadMaxMT: 0.020, growthMinInjectionBT: 0, growthMinInjectionMT: 0 },
     injection: { maxHistoricInjectionBT: 3.5, maxHistoricInjectionMT: 0.5, minHistoricLoadBT: 4.5, minHistoricLoadMT: 2.0, growthMaxInjectionBT: 0.090, growthMaxInjectionMT: 0.040, growthMinLoadBT: 0.010, growthMinLoadMT: 0.010 },
     notes: 'Poste injection ENR et stockage, utile pour tester les dossiers bidirectionnels.',
@@ -225,6 +229,7 @@ const SUBSTATION_SPECS = [
     voltageUpstream: '36kV',
     transformerPower: 30,
     reverseCapacityRatio: 1.0,
+    coordinates: { lat: 50.5900, lng: 5.8700 },
     withdrawal: { maxHistoricLoadBT: 14.0, maxHistoricLoadMT: 10.0, minHistoricInjectionBT: 1.0, minHistoricInjectionMT: 0, growthLoadMaxBT: 0.018, growthLoadMaxMT: 0.018, growthMinInjectionBT: 0, growthMinInjectionMT: 0 },
     injection: { maxHistoricInjectionBT: 1.0, maxHistoricInjectionMT: 0.0, minHistoricLoadBT: 7.0, minHistoricLoadMT: 4.0, growthMaxInjectionBT: 0.030, growthMaxInjectionMT: 0, growthMinLoadBT: 0.010, growthMinLoadMT: 0.010 },
     notes: 'Poste mixte avec dossiers residentiels et clos dans le jeu de demonstration.',
@@ -269,6 +274,7 @@ const TYPE_PROFILES = [
     label: 'Industrie Atlas',
     subId: 'ss-ln',
     city: 'Liege',
+    baseLat: 50.6750, baseLng: 5.5800,
     load: 6.0,
     injection: 0,
     loadItems: [
@@ -282,6 +288,7 @@ const TYPE_PROFILES = [
     label: 'Ecoquartier Vesdre',
     subId: 'ss-ver',
     city: 'Verviers',
+    baseLat: 50.5950, baseLng: 5.8500,
     load: 1.8,
     injection: 0,
     loadItems: [
@@ -295,6 +302,7 @@ const TYPE_PROFILES = [
     label: 'Campus Services',
     subId: 'ss-ser',
     city: 'Seraing',
+    baseLat: 50.6100, baseLng: 5.4900,
     load: 3.2,
     injection: 0,
     loadItems: [
@@ -308,6 +316,7 @@ const TYPE_PROFILES = [
     label: 'Parc solaire Horizon',
     subId: 'ss-her',
     city: 'Herstal',
+    baseLat: 50.6500, baseLng: 5.6350,
     load: 0,
     injection: 4.5,
     loadItems: [],
@@ -320,6 +329,7 @@ const TYPE_PROFILES = [
     label: 'BESS FlexNode',
     subId: 'ss-her',
     city: 'Herstal',
+    baseLat: 50.6700, baseLng: 5.6100,
     load: 2.8,
     injection: 2.8,
     loadItems: [
@@ -334,6 +344,7 @@ const TYPE_PROFILES = [
     label: 'Site mixte communal',
     subId: 'ss-ln',
     city: 'Liege',
+    baseLat: 50.6900, baseLng: 5.5600,
     load: 1.2,
     injection: 0.8,
     loadItems: [
@@ -344,6 +355,12 @@ const TYPE_PROFILES = [
     ],
   },
 ];
+
+/** Coordonnées WGS84 d'un site client (partagées entre dossiers du même client). */
+function siteCoordinates(baseLat, baseLng) {
+  if (baseLat == null || baseLng == null) return null;
+  return { lat: baseLat, lng: baseLng, source: 'manual' };
+}
 
 export const DEMO_SITUATIONS = [
   { key: 'incomplete', label: 'À compléter', code: 'INC', month: 4, requestYear: 2026, mesYear: 2028 },
@@ -556,6 +573,7 @@ function demoRequest(profile, situation, typeIndex, situationIndex) {
     loadItems: profile.loadItems,
     injectionItems: profile.injectionItems,
     statusOverride: situation.key === 'cancelled' ? 'cancelled' : undefined,
+    coordinates: siteCoordinates(profile.baseLat, profile.baseLng),
   });
 
   return req({
@@ -600,6 +618,7 @@ function substationFromSpec(spec) {
     directionalModel: dm(spec.withdrawal, spec.injection),
     foisonnement: FOISON,
     notes: spec.notes,
+    coordinates: spec.coordinates || { lat: null, lng: null },
     connectionRequests: requestsForSubstation(spec.id),
   };
 }

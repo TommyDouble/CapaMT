@@ -28,6 +28,7 @@ import { SubstationDetail }            from './pages/substations/SubstationDetai
 import { GlobalQueuePage }             from './pages/queue/GlobalQueuePage.jsx';
 import { NetworkProjectsPage }         from './pages/projects/NetworkProjectsPage.jsx';
 import { RequestCasePage }             from './pages/requests/RequestCasePage.jsx';
+import { MapPage }                     from './pages/map/MapPage.jsx';
 
 // Modals & drawers
 import { SaisieModal }                 from './pages/intake/SaisieModal.jsx';
@@ -180,6 +181,9 @@ function App() {
               <SubstationDetail sub={selected} initialTab={selectedTab}
                 onBack={handleBack} onUpdate={handleUpdate} prevViewLabel={prevLabel}
                 onNavigateToRequest={navigateToRequest} />
+            )}
+            {view === 'carte' && (
+              <MapPage substations={allSubstations} onUpdate={handleUpdate} />
             )}
             {view === 'request_case' && selected && (
               <RequestCasePage

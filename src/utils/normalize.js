@@ -105,6 +105,10 @@ export function normalizeSubstations(substations) {
       directionalModel: normalizeDirectionalModel(sub.directionalModel),
       foisonnement: sub.foisonnement || {},
       notes: sub.notes || '',
+      coordinates: {
+        lat: sub.coordinates?.lat ? parseFloat(sub.coordinates.lat) || null : null,
+        lng: sub.coordinates?.lng ? parseFloat(sub.coordinates.lng) || null : null,
+      },
       connectionRequests: requests,
     };
   });

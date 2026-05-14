@@ -11,6 +11,7 @@ const SUB_PAR_DEFAULTS = {
   tfos:[{id:'T1',power:'',role:'normal'}],
   coeffN:'0.90', coeffN1:'1.00', mtBackupEnabled:false, mtBackupCapacity:'',
   reverseCapacityRatio:'1.00',
+  lat:'', lng:'',
   foison: Object.fromEntries(Object.keys(FOISON_DEFAULTS).map(t=>[t,String(FOISON_DEFAULTS[t])])),
 };
 
@@ -86,6 +87,8 @@ export function EditSubstationPanel({item, subName, onSave, onClose}) {
       mtBackupEnabled:  tc?.mtBackup?.enabled  || false,
       mtBackupCapacity: tc?.mtBackup?.capacity  || '',
       reverseCapacityRatio: String((tc?.reverseCapacityRatio ?? 1.0).toFixed(2)),
+      lat: item.coordinates?.lat != null ? String(item.coordinates.lat) : '',
+      lng: item.coordinates?.lng != null ? String(item.coordinates.lng) : '',
       foison: Object.fromEntries(
         Object.keys(FOISON_DEFAULTS).map(t => [t, String(existingFoison[t] ?? FOISON_DEFAULTS[t])])
       ),
@@ -132,7 +135,10 @@ export function EditSubstationPanel({item, subName, onSave, onClose}) {
     const previousWithdrawal = previousModel.withdrawalView || {};
     const previousInjection = previousModel.injectionView || {};
     const growth = parseFloat(form.withdrawalGrowthPct) / 100;
+    const lat = parseFloat(form.lat);
+    const lng = parseFloat(form.lng);
     onSave({
+      ...(item || {}),
       directionalModel: {
         referenceYear: safeNum(previousModel.referenceYear, 2025),
         withdrawalView: {
@@ -142,7 +148,14 @@ export function EditSubstationPanel({item, subName, onSave, onClose}) {
         },
         injectionView: previousInjection,
       },
-      notes:form.notes||'', transformerConfig:tc, foisonnement:foison});
+      notes: form.notes||'',
+      transformerConfig: tc,
+      foisonnement: foison,
+      coordinates: {
+        lat: !isNaN(lat) && form.lat !== '' ? lat : null,
+        lng: !isNaN(lng) && form.lng !== '' ? lng : null,
+      },
+    });
   };
 
   return (
@@ -236,6 +249,30 @@ export function EditSubstationPanel({item, subName, onSave, onClose}) {
                 style={{marginTop:10,fontSize:11,color:'var(--text-muted)',background:'none',border:'1px solid var(--border)',borderRadius:6,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}>
                 ↺ Réinitialiser aux valeurs par défaut
               </button>
+            </Section>
+            <Section title="Localisation" color="#0369a1" defaultOpen={false}>
+              <p style={{fontSize:12,color:'var(--text-muted)',marginBottom:10,lineHeight:1.5}}>
+                Coordonnées WGS84 pour l'affichage sur la carte réseau. Province de Liège : lat 50.3–50.9 / lng 5.0–6.2
+              </p>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <FormRow label="Latitude">
+                  <input type="number" step=".0001" value={form.lat||''}
+                    onChange={e=>set('lat',e.target.value)}
+                    className="input-field" placeholder="ex: 50.6450"/>
+                </FormRow>
+                <FormRow label="Longitude">
+                  <input type="number" step=".0001" value={form.lng||''}
+                    onChange={e=>set('lng',e.target.value)}
+                    className="input-field" placeholder="ex: 5.5720"/>
+                </FormRow>
+              </div>
+              {form.lat && form.lng && (
+                <a href={`https://www.openstreetmap.org/?mlat=${form.lat}&mlon=${form.lng}&zoom=15`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{fontSize:11,color:'var(--accent)',display:'inline-block',marginTop:6}}>
+                  Vérifier sur OpenStreetMap ↗
+                </a>
+              )}
             </Section>
             <Section title="Notes" color="var(--text-muted)">
               <textarea value={form.notes||''} onChange={e=>set('notes',e.target.value)}
