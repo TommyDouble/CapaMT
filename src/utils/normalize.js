@@ -1,4 +1,5 @@
 import { safeNum } from './numbers.js';
+import { normalizeCoordinates } from './coordinates.js';
 import { computeCapacityImpact } from '../engines/capacityImpact.js';
 import { normalizeRequest } from '../engines/requestModel.js';
 
@@ -105,10 +106,7 @@ export function normalizeSubstations(substations) {
       directionalModel: normalizeDirectionalModel(sub.directionalModel),
       foisonnement: sub.foisonnement || {},
       notes: sub.notes || '',
-      coordinates: {
-        lat: sub.coordinates?.lat ? parseFloat(sub.coordinates.lat) || null : null,
-        lng: sub.coordinates?.lng ? parseFloat(sub.coordinates.lng) || null : null,
-      },
+      coordinates: normalizeCoordinates(sub.coordinates, 'manual'),
       connectionRequests: requests,
     };
   });
@@ -118,5 +116,17 @@ export function normalizeProjects(projects) {
   return (projects || []).map(project => ({
     ...project,
     status: normalizeStatus(project.status),
+    effects: (project.effects || []).map(normalizeProjectEffect),
   }));
+}
+
+function normalizeProjectEffect(effect = {}) {
+  if (effect.action !== 'create_ss' || !effect.newSS) return effect;
+  return {
+    ...effect,
+    newSS: {
+      ...effect.newSS,
+      coordinates: normalizeCoordinates(effect.newSS.coordinates, 'project'),
+    },
+  };
 }

@@ -126,12 +126,19 @@ export function computeCapacityImpact(req, asOf = new Date()) {
   }
   if (offer.status === 'offer_connected') {
     const retention = getConnectedRetentionInfo(req, asOf);
-    const impact = retention.expired
+    const connectedReleasedAt = dateOnly(offer.connectedReleasedAt);
+    const manuallyReleased = Boolean(connectedReleasedAt);
+    const impact = manuallyReleased
+      ? emptyImpact('CONNECTED_RELEASED', 'CONNECTED_MANUAL_RELEASE')
+      : retention.expired
       ? emptyImpact('CONNECTED_RELEASED', 'RETENTION_ENDED')
       : impactFromFinal(req, 'CONNECTED_RESERVED', 'CONNECTED_RETENTION');
     return {
       ...impact,
       connectedRetention: retention,
+      connectedReleasedAt,
+      connectedReleaseComment: offer.connectedReleaseComment || '',
+      connectedReleaseMode: manuallyReleased ? 'manual' : retention.expired ? 'automatic' : null,
       retentionMonths: retention.months,
       retentionUntil: retention.retentionUntil,
       retentionDaysLeft: retention.daysLeft,

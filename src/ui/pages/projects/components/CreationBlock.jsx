@@ -15,6 +15,12 @@ function calcCapacityN(tc) {
 }
 
 export function CreationBlock({ block, onChange, onRemove }) {
+  const coordinates = block.coordinates || { lat: '', lng: '', source: 'project' };
+  const setCoordinate = (key, value) => onChange({
+    ...block,
+    coordinates: { ...coordinates, [key]: value, source: 'project' },
+  });
+
   return (
     <div className="wizard-block wizard-block--creation">
       <div className="wizard-block__header wizard-block__header--purple">
@@ -39,6 +45,16 @@ export function CreationBlock({ block, onChange, onRemove }) {
             <select value={block.voltageUpstream} onChange={e => onChange({ ...block, voltageUpstream: e.target.value })} className="input-field">
               {UPSTREAM_LEVELS.map(l => <option key={l}>{l}</option>)}
             </select>
+          </FormRow>
+          <FormRow label="Latitude WGS84" hint="Optionnel, pour la carte réseau">
+            <input inputMode="decimal" value={coordinates.lat ?? ''}
+              onChange={e => setCoordinate('lat', e.target.value)}
+              placeholder="Ex: 50.6200" className="input-field" />
+          </FormRow>
+          <FormRow label="Longitude WGS84" hint="Optionnel, pour la carte réseau">
+            <input inputMode="decimal" value={coordinates.lng ?? ''}
+              onChange={e => setCoordinate('lng', e.target.value)}
+              placeholder="Ex: 5.5700" className="input-field" />
           </FormRow>
           <FormRow label="Base prélèvement initiale (MVA)" hint="Alimente le modèle directionnel de départ">
             <input type="number" step="0.1" value={block.initialLoadMva}

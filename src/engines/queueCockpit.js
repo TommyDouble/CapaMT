@@ -64,7 +64,6 @@ function rowKey(sub, req) {
 function isFinalClosed({ customer, offer, impact }) {
   return customer.status === 'cancelled'
     || offer.status === 'offer_cancelled'
-    || offer.status === 'offer_connected'
     || impact.status === 'RELEASED'
     || impact.status === 'CONNECTED_RELEASED';
 }
@@ -218,10 +217,11 @@ function buildQueueIndex(sub, projects) {
 export function buildQueueCockpitRows(substations = [], projects = []) {
   return substations.flatMap(sub => {
     const queueIndex = buildQueueIndex(sub, projects);
-    return (sub.connectionRequests || []).map(req => {
+    return (sub.connectionRequests || []).flatMap(req => {
       const customer = getCustomer(req);
       const assessment = getAssessment(req);
       const offer = getOffer(req);
+      if (offer.status === 'offer_connected') return [];
       const impact = computeCapacityImpact(req);
       const queueItem = queueIndex.get(req.id) || null;
       const action = getPrimaryAction(req);
@@ -256,7 +256,7 @@ export function buildQueueCockpitRows(substations = [], projects = []) {
       const reference = customer.client?.reference || '';
       const type = customer.client?.type || 'autre';
 
-      return {
+      return [{
         id: rowKey(sub, req),
         req,
         sub,
@@ -305,7 +305,7 @@ export function buildQueueCockpitRows(substations = [], projects = []) {
         assessmentStatus: assessment.status,
         customerStatus: customer.status,
         isClosed: stepKey === 'closed',
-      };
+      }];
     });
   });
 }

@@ -33,6 +33,11 @@ export function ProjectWizard({ project, substations, allSubstations, onSave, on
         blocks.push({
           _id: uid(), blockType: 'création', _newSsId: ssId,
           name: ns.name || '', code: ns.code || '', commune: ns.commune || '',
+          coordinates: {
+            lat: ns.coordinates?.lat ?? '',
+            lng: ns.coordinates?.lng ?? '',
+            source: 'project',
+          },
           voltageUpstream: ns.voltageUpstream || '36kV',
           initialLoadMva: String(wv.maxHistoricLoadBT || 0),
           growthRatePct: String(((wv.growthLoadMaxBT || 0.015) * 100).toFixed(2)),
@@ -103,6 +108,7 @@ export function ProjectWizard({ project, substations, allSubstations, onSave, on
       setBlocks(bs => [...bs, {
         _id: uid(), blockType: 'création',
         name: '', code: '', commune: '', voltageUpstream: '36kV',
+        coordinates: { lat: '', lng: '', source: 'project' },
         initialLoadMva: '0', growthRatePct: '1.5',
         tfos: [{ id: 'T1', power: '', role: 'normal' }],
         coeffN: '0.90', coeffN1: '1.00', loadDelta: '',

@@ -2,8 +2,8 @@
  * services/storage.js
  * Source unique de vérité pour la persistance.
  *
- * Format v11 : { version, savedAt, substations, networkProjects, activityLog }
- * Les sessions pré-v11 sont volontairement ignorées : la refonte repart sur
+ * Format v12 : { version, savedAt, substations, networkProjects, activityLog }
+ * Les sessions pré-v12 sont volontairement ignorées : la refonte repart sur
  * des données d'exemple propres.
  */
 
@@ -19,7 +19,7 @@ import {
 } from '../engines/directionalSubstation.js';
 import { getCapacityAtYear } from '../engines/capacity.js';
 
-const STORAGE_VERSION = 11;
+const STORAGE_VERSION = 12;
 
 // ── Persistance locale ──────────────────────────────────────────────────────
 
@@ -141,7 +141,7 @@ export function importJSONFile(file, onSuccess, onError) {
           `Format v${d.version} détecté — version postérieure (actuelle : v${STORAGE_VERSION}).`
         );
       if (!d.version || d.version < STORAGE_VERSION)
-        throw new Error('Format pré-v11 non importé automatiquement : repartez des données d’exemple ou exportez au format v11.');
+        throw new Error('Format pré-v12 non importé automatiquement : repartez des données d’exemple ou exportez au format v12.');
 
       d.substations     = normalizeSubstations(d.substations);
       if (d.networkProjects) d.networkProjects = normalizeProjects(d.networkProjects);

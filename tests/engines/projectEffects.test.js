@@ -15,12 +15,14 @@ describe('effets projet réseau canoniques', () => {
       coeffN: '0.90',
       coeffN1: '1.00',
       reverseCapacityRatio: '0.75',
+      coordinates: { lat: '50.61', lng: '5.56' },
       initialLoadMva: '12',
       growthRatePct: '2',
     }], []);
 
     expect(effect.action).toBe('create_ss');
     expect(effect.newSS.transformerConfig.reverseCapacityRatio).toBe(0.75);
+    expect(effect.newSS.coordinates).toEqual({ lat: 50.61, lng: 5.56, source: 'project' });
     expect(effect.newSS.directionalModel.withdrawalView.maxHistoricLoadBT).toBe(12);
     expect(effect.newSS.directionalModel.withdrawalView.growthLoadMaxBT).toBe(0.02);
   });

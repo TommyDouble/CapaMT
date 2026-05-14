@@ -30,6 +30,8 @@ const SOURCE_LABELS = {
   TECHNICAL_RESPONSE: 'Réponse technique',
   OFFER_ACCEPTED: 'Offre acceptée',
   CONNECTED_RETENTION: 'Maintien raccordé',
+  CONNECTED_MANUAL_RELEASE: 'Libération manuelle raccordé',
+  RETENTION_ENDED: 'Maintien raccordé expiré',
   CUSTOMER_CANCELLATION: 'Libération client',
   BASELINE_UPDATED: 'Baseline mise à jour',
   BASELINE: 'Baseline raccordée',

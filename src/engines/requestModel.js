@@ -4,6 +4,7 @@ import {
   CONNECTED_RETENTION_MAX_MONTHS,
   CONNECTED_RETENTION_MIN_MONTHS,
 } from '../constants/index.js';
+import { normalizeCoordinates } from '../utils/coordinates.js';
 import { pendingSplit, withRequested } from './capacitySplit.js';
 
 export const isoNow = () => new Date().toISOString();
@@ -50,7 +51,7 @@ function defaultCustomer(targetSubstationId) {
         country: 'Belgique',
         freeform: '',
       },
-      coordinates: { lat: '', lng: '', source: 'manual' },
+      coordinates: { lat: null, lng: null, source: 'manual' },
     },
     requested: {
       total: 0,
@@ -97,6 +98,8 @@ function defaultOffer() {
     acceptedAt: '',
     connectedAt: '',
     connectedRetentionMonths: undefined,
+    connectedReleasedAt: '',
+    connectedReleaseComment: '',
     comment: '',
   };
 }
@@ -336,6 +339,8 @@ function normalizeOffer(baseOffer = {}) {
     ...base,
     status: base.status || 'not_applicable',
     connectedRetentionMonths: base.status === 'offer_connected' ? connectedRetentionMonths : base.connectedRetentionMonths,
+    connectedReleasedAt: base.connectedReleasedAt || '',
+    connectedReleaseComment: base.connectedReleaseComment || '',
     comment: base.comment || '',
   };
 }
@@ -354,10 +359,10 @@ export function normalizeRequest(req = {}, targetSubstationId = req.targetSubsta
         ...fallbackCustomer.site.address,
         ...(rawCustomer.site?.address || {}),
       },
-      coordinates: {
+      coordinates: normalizeCoordinates({
         ...fallbackCustomer.site.coordinates,
         ...(rawCustomer.site?.coordinates || {}),
-      },
+      }, 'manual'),
     },
     requested: { ...fallbackCustomer.requested, ...(rawCustomer.requested || {}) },
     targetSubstationId: rawCustomer.targetSubstationId || targetSubstationId || fallbackCustomer.targetSubstationId,

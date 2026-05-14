@@ -80,7 +80,7 @@ function customer({
       label: siteLabel || name,
       commune: city || '',
       address: address(city || ''),
-      coordinates: coordinates || { lat: '', lng: '', source: 'manual' },
+      coordinates: coordinates || { lat: null, lng: null, source: 'manual' },
     },
     requested: {
       direction: load > 0 && injection > 0 ? 'BOTH' : injection > 0 ? 'INJECTION' : 'LOAD',
@@ -618,7 +618,7 @@ function substationFromSpec(spec) {
     directionalModel: dm(spec.withdrawal, spec.injection),
     foisonnement: FOISON,
     notes: spec.notes,
-    coordinates: spec.coordinates || { lat: null, lng: null },
+    coordinates: spec.coordinates || { lat: null, lng: null, source: 'manual' },
     connectionRequests: requestsForSubstation(spec.id),
   };
 }

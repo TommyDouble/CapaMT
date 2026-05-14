@@ -5,7 +5,7 @@ import {
   filterQueueCockpitRows,
   sortQueueCockpitRows,
 } from '../../src/engines/queueCockpit.js';
-import { canonicalRequest, canonicalSubstation, studiedRequest } from '../helpers/canonicalFixtures.js';
+import { canonicalRequest, canonicalSubstation, connectedRequest, studiedRequest } from '../helpers/canonicalFixtures.js';
 
 describe('cockpit global canonique', () => {
   it('produit des lignes actionnables depuis customer, assessment et offer', () => {
@@ -48,5 +48,21 @@ describe('cockpit global canonique', () => {
 
     expect(stats.total).toBe(2);
     expect(stats.activeReservedMva).toBe(8);
+  });
+
+  it('exclut les raccordés de la file globale active', () => {
+    const sub = canonicalSubstation({
+      connectionRequests: [
+        canonicalRequest({ id: 'ready', load: 5 }),
+        connectedRequest({ id: 'connected', load: 4, offerDates: { connectedAt: '2026-04-01' } }),
+      ],
+    });
+
+    const rows = buildQueueCockpitRows([sub]);
+    const stats = buildQueueCockpitStats(rows);
+
+    expect(rows.map(row => row.req.id)).toEqual(['ready']);
+    expect(stats.byStep.closed).toBe(0);
+    expect(stats.activeReservedMva).toBe(5);
   });
 });

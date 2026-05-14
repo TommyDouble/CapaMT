@@ -17,7 +17,7 @@ npm run preview    # previsualiser le build
 
 - Application Vite + React, logique metier isolee dans `src/engines/`.
 - Modele dossier canonique: `customer`, `assessment`, `offer`, `capacityImpact`.
-- Persistance locale en **v11**. Les sessions pre-v11 sont ignorees volontairement pour repartir d'un jeu d'exemple propre.
+- Persistance locale en **v12**. Les sessions pre-v12 sont ignorees volontairement pour repartir d'un jeu d'exemple propre.
 - `node_modules/`, `dist/`, `.DS_Store` et les caches locaux sont ignores par Git.
 
 ## Architecture
@@ -40,6 +40,7 @@ resa-capacite/
 │   │   ├── numbers.js      safeNum, safeDiv
 │   │   ├── dates.js        getToday
 │   │   ├── format.js       formatteurs UI
+│   │   ├── coordinates.js  Normalisation lat/lng WGS84
 │   │   └── normalize.js    normalisation SS, projets, demandes
 │   │
 │   ├── engines/            Logique metier pure, testable hors React
@@ -70,6 +71,7 @@ resa-capacite/
 │           ├── requests/   Page dossier + workflow client/etude/offre
 │           ├── substations/
 │           ├── projects/
+│           ├── map/        Carte réseau Leaflet sans géocodage externe
 │           └── intake/
 │
 └── tests/
@@ -105,7 +107,7 @@ Les calculs metier restent dans `src/engines/`.
 
 ## Format de persistance
 
-Version courante : **v11**.
+Version courante : **v12**.
 
 ```js
 {
@@ -117,4 +119,4 @@ Version courante : **v11**.
 }
 ```
 
-Les imports pre-v11 ne sont pas migres automatiquement: la refonte repart sur des donnees d'exemple normalisees.
+Les imports pre-v12 ne sont pas migres automatiquement: la refonte repart sur des donnees d'exemple normalisees.

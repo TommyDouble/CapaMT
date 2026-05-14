@@ -14,12 +14,17 @@ function isConnectedRequest(req) {
 }
 
 function statusLabel(row) {
+  if (row.impact.connectedReleaseMode === 'manual') return 'Libéré manuellement';
   if (row.retention.missingConnectedAt) return 'Date manquante';
   if (row.impact.status === 'CONNECTED_RESERVED') return row.retention.daysLeft === 0 ? 'Dernier jour' : 'Maintenu';
-  return 'Expiré';
+  return 'Expiré automatiquement';
 }
 
-function daysLabel(retention) {
+function daysLabel(row) {
+  const retention = row.retention;
+  if (row.impact.connectedReleaseMode === 'manual') {
+    return `Libéré le ${fmtShortDate(row.impact.connectedReleasedAt)}`;
+  }
   if (retention.missingConnectedAt) return 'Date à renseigner';
   if (retention.daysLeft === 0) return 'Dernier jour';
   if (retention.daysLeft > 0) return `${retention.daysLeft} j restants`;
@@ -114,6 +119,38 @@ export function ConnectedCapacityTab({ sub, onUpdate, onNavigateToRequest }) {
     });
   };
 
+  const handleReleaseNow = req => {
+    if (!window.confirm('Libérer maintenant cette capacité raccordée ?')) return;
+    const today = new Date().toISOString().slice(0, 10);
+    updateRequest(req.id, current => {
+      const offer = getOffer(current);
+      return {
+        ...current,
+        offer: {
+          ...offer,
+          status: 'offer_connected',
+          connectedReleasedAt: today,
+          connectedReleaseComment: offer.connectedReleaseComment || 'Libération manuelle depuis l’onglet Raccordés.',
+        },
+      };
+    });
+  };
+
+  const handleReactivate = req => {
+    updateRequest(req.id, current => {
+      const offer = getOffer(current);
+      return {
+        ...current,
+        offer: {
+          ...offer,
+          status: 'offer_connected',
+          connectedReleasedAt: '',
+          connectedReleaseComment: '',
+        },
+      };
+    });
+  };
+
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8 }}>
@@ -154,7 +191,7 @@ export function ConnectedCapacityTab({ sub, onUpdate, onNavigateToRequest }) {
           </div>
         </div>
 
-        <table style={{ width: '100%', minWidth: 980, borderCollapse: 'collapse' }}>
+        <table style={{ width: '100%', minWidth: 1100, borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'var(--bg-muted)' }}>
               {[
@@ -236,8 +273,13 @@ export function ConnectedCapacityTab({ sub, onUpdate, onNavigateToRequest }) {
                       {fmtShortDate(row.retention.retentionUntil)}
                     </div>
                     <div style={{ fontSize: 10, color: row.retention.daysLeft != null && row.retention.daysLeft <= 60 && row.retention.daysLeft >= 0 ? 'var(--amber)' : 'var(--text-muted)' }}>
-                      {daysLabel(row.retention)}
+                      {daysLabel(row)}
                     </div>
+                    {row.impact.connectedReleaseMode === 'manual' && row.impact.connectedReleaseComment && (
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                        {row.impact.connectedReleaseComment}
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: '11px 10px', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -259,6 +301,18 @@ export function ConnectedCapacityTab({ sub, onUpdate, onNavigateToRequest }) {
                     </div>
                   </td>
                   <td style={{ padding: '11px 10px', borderBottom: '1px solid var(--border)', textAlign: 'right' }}>
+                    {onUpdate && row.impact.status === 'CONNECTED_RESERVED' && (
+                      <button type="button" className="btn-edit-link" style={{ fontSize: 11, color: 'var(--accent)', marginRight: 10 }}
+                        onClick={() => handleReleaseNow(row.req)}>
+                        Libérer maintenant
+                      </button>
+                    )}
+                    {onUpdate && row.impact.connectedReleaseMode === 'manual' && (
+                      <button type="button" className="btn-edit-link" style={{ fontSize: 11, color: 'var(--green)', marginRight: 10 }}
+                        onClick={() => handleReactivate(row.req)}>
+                        Réactiver
+                      </button>
+                    )}
                     {onNavigateToRequest && (
                       <button type="button" className="btn-edit-link" style={{ fontSize: 11 }}
                         onClick={() => onNavigateToRequest(sub.id, row.req.id)}>

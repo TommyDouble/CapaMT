@@ -183,7 +183,12 @@ function App() {
                 onNavigateToRequest={navigateToRequest} />
             )}
             {view === 'carte' && (
-              <MapPage substations={allSubstations} onUpdate={handleUpdate} />
+              <MapPage
+                baseSubstations={substations}
+                displaySubstations={allSubstations}
+                projects={networkProjects}
+                onUpdateSubstation={handleUpdate}
+              />
             )}
             {view === 'request_case' && selected && (
               <RequestCasePage

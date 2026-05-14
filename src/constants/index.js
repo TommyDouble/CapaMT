@@ -5,7 +5,7 @@
 
 export const YEARS    = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035];
 export const REF_YEAR = 2025;
-export const STORAGE_KEY = 'resa_planif_v11';
+export const STORAGE_KEY = 'resa_planif_v12';
 
 export const ALERT_CONFIG = {
   ok:       { thr: 0,    label: 'OK',          color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', bar: '#22c55e' },

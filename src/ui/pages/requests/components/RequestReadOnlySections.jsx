@@ -68,6 +68,8 @@ function impactSourceLabel(source) {
     TECHNICAL_RESPONSE: 'Réponse technique finalisée',
     OFFER_ACCEPTED: 'Offre acceptée',
     CONNECTED_RETENTION: 'Maintien post-raccordement',
+    CONNECTED_MANUAL_RELEASE: 'Libération manuelle raccordé',
+    RETENTION_ENDED: 'Maintien raccordé expiré',
     CUSTOMER_CANCELLATION: 'Annulation ou refus',
     BASELINE_UPDATED: 'Baseline supposée mise à jour',
     BASELINE: 'Raccordement intégré',
@@ -165,7 +167,14 @@ export function RequestReadOnlySections({ req, queueItem }) {
         <InfoCard title="Offre / raccordement" badge={<OfferStatusBadge status={offer.status} size="xs" />}>
           <SummaryLine label={offerDateLabel} value={offerDate ? fmtShortDate(offerDate) : '—'} mono />
           {offer.status === 'offer_connected' && (
-            <SummaryLine label="Maintien capacité" value={`${impact.retentionMonths || offer.connectedRetentionMonths || '—'} mois`} mono />
+            <>
+              <SummaryLine label="Maintien capacité" value={`${impact.retentionMonths || offer.connectedRetentionMonths || '—'} mois`} mono />
+              <SummaryLine label="Fin maintien" value={impact.retentionUntil ? fmtShortDate(impact.retentionUntil) : '—'} mono />
+              <SummaryLine label="Impact raccordé" value={impact.status === 'CONNECTED_RESERVED' ? 'Comptabilisé' : 'Non comptabilisé'} />
+              {impact.connectedReleasedAt && (
+                <SummaryLine label="Libération manuelle" value={fmtShortDate(impact.connectedReleasedAt)} mono />
+              )}
+            </>
           )}
           <p>{offer.status === 'not_applicable' ? 'Aucune offre formulée.' : 'Suivi commercial actif.'}</p>
           {offer.comment && (

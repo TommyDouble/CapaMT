@@ -36,6 +36,31 @@ describe('capacity impact canonique', () => {
 
     expect(impact.status).toBe('CONNECTED_RELEASED');
     expect(impact.reservedLoadPermanent).toBe(0);
+    expect(impact.connectedReleaseMode).toBe('automatic');
+  });
+
+  it('libère manuellement un dossier raccordé avant échéance', () => {
+    const req = connectedRequest({
+      offerDates: { connectedAt: '2026-01-01', connectedReleasedAt: '2026-03-01' },
+      connectedReleaseComment: 'Pointe historique mise à jour',
+      load: 5,
+    });
+    const impact = computeCapacityImpact(req, new Date('2026-03-02T00:00:00Z'));
+
+    expect(impact.status).toBe('CONNECTED_RELEASED');
+    expect(impact.source).toBe('CONNECTED_MANUAL_RELEASE');
+    expect(impact.connectedReleasedAt).toBe('2026-03-01');
+    expect(impact.connectedReleaseMode).toBe('manual');
+    expect(impact.reservedLoadPermanent).toBe(0);
+  });
+
+  it('réactive le maintien si la libération manuelle est retirée', () => {
+    const req = connectedRequest({
+      offerDates: { connectedAt: '2026-01-01' },
+      load: 5,
+    });
+
+    expect(computeCapacityImpact(req, new Date('2026-03-02T00:00:00Z')).status).toBe('CONNECTED_RESERVED');
   });
 
   it('respecte une durée personnalisée par dossier', () => {

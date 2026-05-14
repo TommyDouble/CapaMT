@@ -10,6 +10,7 @@
 
 import { safeNum } from '../utils/numbers.js';
 import { uid }     from '../utils/format.js';
+import { normalizeCoordinates } from '../utils/coordinates.js';
 
 /**
  * @param {object[]} blocks       - Blocs du wizard (renforcement | création | suppression)
@@ -78,6 +79,7 @@ export function computeEffectsFromBlocks(blocks, substations) {
       const newId = block._newSsId || `ss-new-${uid().slice(0, 6)}`;
       const initialLoad = safeNum(block.initialLoadMva, 0);
       const growthRate = safeNum(block.growthRatePct, 1.5) / 100;
+      const coordinates = normalizeCoordinates(block.coordinates, 'project');
 
       effects.push({
         ssId:   newId,
@@ -89,6 +91,7 @@ export function computeEffectsFromBlocks(blocks, substations) {
           commune:          block.commune    || '',
           voltageLevel:     `${block.voltageUpstream || '36kV'}/10 kV`,
           voltageUpstream:  block.voltageUpstream || '36kV',
+          coordinates,
           transformerConfig: tc,
           directionalModel: {
             referenceYear: 2025,

@@ -434,7 +434,7 @@ export function GlobalQueuePage({ substations, onNavigate, onNavigateToRequest, 
         <MetricCard label="À traiter maintenant" value={stats.actionNow} color="var(--accent)" subtitle="action disponible" />
         <MetricCard label="CAPAC bloquants" value={stats.capacBlocking} color="#ea580c" subtitle="en attente ELIA" />
         <MetricCard label="Offres expirées" value={stats.expiredOffers} color="var(--red)" subtitle="réservées à traiter" />
-        <MetricCard label="MVA réservés actifs" value={f1(stats.activeReservedMva)} suffix="MVA" color="var(--prelev)" subtitle="prélèvement + injection" />
+        <MetricCard label="MVA file active" value={f1(stats.activeReservedMva)} suffix="MVA" color="var(--prelev)" subtitle="hors raccordés" />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
