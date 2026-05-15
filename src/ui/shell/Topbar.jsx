@@ -9,6 +9,7 @@ const VIEW_LABELS = {
   list: 'Sous-stations',
   file_attente: "File d'attente",
   investissements: 'Projets réseau',
+  carte: 'Carte réseau',
   detail: null,
   request_case: 'Dossier demande',
 };

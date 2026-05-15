@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import {
   MapContainer,
@@ -194,6 +195,132 @@ function DemandGroupPopover({ title, subline, rows }) {
 function ClickHandler({ onMapClick }) {
   useMapEvents({ click: (e) => onMapClick(e.latlng) });
   return null;
+}
+
+function MapLegendItem({ level, cfg }) {
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState(null);
+  const triggerRef = useRef(null);
+  const description = ALERT_DESCRIPTIONS[level] || cfg.label;
+  const tooltipId = `map-legend-tooltip-${level}`;
+
+  const updateTooltipPosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const margin = 8;
+    const gap = 8;
+    const width = Math.min(280, window.innerWidth - margin * 2);
+    const estimatedHeight = 86;
+    const left = Math.min(
+      Math.max(rect.left + rect.width / 2 - width / 2, margin),
+      window.innerWidth - width - margin,
+    );
+    const below = rect.bottom + gap;
+    const top =
+      below + estimatedHeight <= window.innerHeight
+        ? below
+        : Math.max(margin, rect.top - estimatedHeight - gap);
+
+    setPosition({ left, top, width });
+  }, []);
+
+  const showTooltip = useCallback(() => {
+    updateTooltipPosition();
+    setOpen(true);
+  }, [updateTooltipPosition]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    updateTooltipPosition();
+    window.addEventListener('resize', updateTooltipPosition);
+    window.addEventListener('scroll', updateTooltipPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updateTooltipPosition);
+      window.removeEventListener('scroll', updateTooltipPosition, true);
+    };
+  }, [open, updateTooltipPosition]);
+
+  return (
+    <span
+      ref={triggerRef}
+      tabIndex={0}
+      aria-describedby={open ? tooltipId : undefined}
+      onMouseEnter={showTooltip}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={showTooltip}
+      onBlur={() => setOpen(false)}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 3,
+        fontSize: 10,
+        color: 'var(--text-muted)',
+        cursor: 'help',
+        borderBottom: '1px dotted var(--border)',
+        paddingBottom: 1,
+        outline: open ? '1px solid var(--accent)' : 'none',
+        outlineOffset: 2,
+      }}
+    >
+      <span
+        style={{
+          width: 9,
+          height: 9,
+          borderRadius: '50%',
+          background: cfg.bar,
+          display: 'inline-block',
+          flexShrink: 0,
+        }}
+      />
+      {cfg.label}
+      {open &&
+        position &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <span
+            id={tooltipId}
+            role="tooltip"
+            style={{
+              position: 'fixed',
+              left: position.left,
+              top: position.top,
+              zIndex: 4000,
+              width: position.width,
+              padding: '8px 10px',
+              borderRadius: 6,
+              background: 'var(--bg-raised)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-lg)',
+              color: 'var(--text-secondary)',
+              fontSize: 11,
+              fontWeight: 600,
+              lineHeight: 1.35,
+              textTransform: 'none',
+              pointerEvents: 'none',
+              whiteSpace: 'normal',
+            }}
+          >
+            <span
+              style={{
+                display: 'block',
+                marginBottom: 2,
+                color: cfg.bar,
+                fontWeight: 900,
+              }}
+            >
+              {cfg.label}
+            </span>
+            {description}
+          </span>,
+          document.body,
+        )}
+    </span>
+  );
 }
 
 export function MapPage({
@@ -434,32 +561,7 @@ export function MapPage({
             SS
           </span>
           {Object.entries(ALERT_CONFIG).map(([level, cfg]) => (
-            <span
-              key={level}
-              title={ALERT_DESCRIPTIONS[level] || cfg.label}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 3,
-                fontSize: 10,
-                color: 'var(--text-muted)',
-                cursor: 'help',
-                borderBottom: '1px dotted var(--border)',
-                paddingBottom: 1,
-              }}
-            >
-              <span
-                style={{
-                  width: 9,
-                  height: 9,
-                  borderRadius: '50%',
-                  background: cfg.bar,
-                  display: 'inline-block',
-                  flexShrink: 0,
-                }}
-              />
-              {cfg.label}
-            </span>
+            <MapLegendItem key={level} level={level} cfg={cfg} />
           ))}
           {showRequests && (
             <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
