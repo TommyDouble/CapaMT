@@ -100,9 +100,9 @@ export function AnnualTable({ sub, projects, activeYear, onSelectYear }) {
                 const iFlex = getInjectionFlexibleReservation(sub, y);
                 const isActive = y === activeYear;
                 const bg = isActive ? 'var(--accent-dim)' : 'transparent';
-                const tdR = (v, c, bold) => (
+                const tdR = (key, v, c, bold) => (
                   <td
-                    key={Math.random()}
+                    key={`${y}-${key}`}
                     style={{
                       padding: '5px 8px',
                       textAlign: 'right',
@@ -147,15 +147,33 @@ export function AnnualTable({ sub, projects, activeYear, onSelectYear }) {
                     >
                       ⬆ PRÉL.
                     </td>
-                    {tdR(f1(state.capDirN1))}{' '}
-                    {tdR(state.capDirN ? f1(state.capDirN) : '—', 'var(--text-muted)')}
-                    {tdR(f1(pc(wv.maxHistoricLoadBT, wv.growthLoadMaxBT)), 'var(--accent)')}
-                    {tdR(f1(pc(wv.maxHistoricLoadMT, wv.growthLoadMaxMT)), 'var(--accent)')}
-                    {tdR(f1(pc(wv.minHistoricInjectionBT, wv.growthMinInjectionBT)), 'var(--inj)')}
-                    {tdR(f1(pc(wv.minHistoricInjectionMT, wv.growthMinInjectionMT)), 'var(--inj)')}
-                    {tdR(f1(wBase), 'var(--accent)', true)}
-                    {tdR(f1(wFirm), 'var(--prelev)')} {tdR(f1(wFlex), 'var(--amber)')}
-                    {tdR(f1(state.wRigid), null, true)} {tdR(f1(state.wTotal))}
+                    {tdR('w-cap-n1', f1(state.capDirN1))}{' '}
+                    {tdR('w-cap-n', state.capDirN ? f1(state.capDirN) : '—', 'var(--text-muted)')}
+                    {tdR(
+                      'w-dom-bt',
+                      f1(pc(wv.maxHistoricLoadBT, wv.growthLoadMaxBT)),
+                      'var(--accent)',
+                    )}
+                    {tdR(
+                      'w-dom-mt',
+                      f1(pc(wv.maxHistoricLoadMT, wv.growthLoadMaxMT)),
+                      'var(--accent)',
+                    )}
+                    {tdR(
+                      'w-opp-bt',
+                      f1(pc(wv.minHistoricInjectionBT, wv.growthMinInjectionBT)),
+                      'var(--inj)',
+                    )}
+                    {tdR(
+                      'w-opp-mt',
+                      f1(pc(wv.minHistoricInjectionMT, wv.growthMinInjectionMT)),
+                      'var(--inj)',
+                    )}
+                    {tdR('w-base', f1(wBase), 'var(--accent)', true)}
+                    {tdR('w-firm', f1(wFirm), 'var(--prelev)')}{' '}
+                    {tdR('w-flex', f1(wFlex), 'var(--amber)')}
+                    {tdR('w-rigid', f1(state.wRigid), null, true)}{' '}
+                    {tdR('w-total', f1(state.wTotal))}
                     <td
                       style={{
                         padding: '5px 8px',
@@ -239,7 +257,7 @@ export function AnnualTable({ sub, projects, activeYear, onSelectYear }) {
                       f1(Math.abs(state.injTotal)),
                     ].map((v, j) => (
                       <td
-                        key={j}
+                        key={`${y}-i-${j}`}
                         style={{
                           padding: '5px 8px',
                           textAlign: 'right',

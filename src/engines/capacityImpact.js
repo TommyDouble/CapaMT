@@ -19,6 +19,7 @@ import {
 } from './requestModel.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const IMPACT_CACHE = new WeakMap();
 
 function dateOnly(value) {
   if (!value) return null;
@@ -100,6 +101,31 @@ export function emptyImpact(status = 'NONE', source = 'NONE') {
   };
 }
 
+function capacityImpactSignature(req, asOf) {
+  const customer = getCustomer(req);
+  const assessment = getAssessment(req);
+  const offer = getOffer(req);
+  return JSON.stringify({
+    asOf: dateOnly(asOf) || dateOnly(new Date()),
+    customer: {
+      status: customer.status,
+      requested: customer.requested,
+    },
+    assessment: {
+      status: assessment.status,
+      final: assessment.final,
+    },
+    offer,
+  });
+}
+
+function withFreshComputedAt(impact) {
+  return {
+    ...impact,
+    computedAt: new Date().toISOString(),
+  };
+}
+
 function impactFromFinal(req, status, source) {
   const assessment = getAssessment(req);
   const finalLoad = assessment.final?.load;
@@ -116,6 +142,20 @@ function impactFromFinal(req, status, source) {
 }
 
 export function computeCapacityImpact(req, asOf = new Date()) {
+  if (req && typeof req === 'object') {
+    const signature = capacityImpactSignature(req, asOf);
+    const cached = IMPACT_CACHE.get(req);
+    if (cached?.signature === signature) return withFreshComputedAt(cached.impact);
+
+    const impact = computeCapacityImpactUncached(req, asOf);
+    IMPACT_CACHE.set(req, { signature, impact });
+    return withFreshComputedAt(impact);
+  }
+
+  return computeCapacityImpactUncached(req, asOf);
+}
+
+function computeCapacityImpactUncached(req, asOf) {
   const customer = getCustomer(req);
   const assessment = getAssessment(req);
   const offer = getOffer(req);

@@ -4,7 +4,7 @@
  * État global conservé ici (useReducer non branché car cross-cutting saisie/log).
  * Navigation entièrement déléguée au hook.
  */
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_SUBSTATIONS, INITIAL_NETWORK_PROJECTS } from '../data/initial.js';
 import { uid, fmtDate } from '../utils/format.js';
@@ -64,6 +64,7 @@ function App() {
   // ── Modals ─────────────────────────────────────────────────────────────────
   const [showSaisie, setShowSaisie] = useState(false);
   const [showActivityLog, setShowActivityLog] = useState(false);
+  const contentRef = useRef(null);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   useKeyboardShortcuts({
@@ -72,13 +73,23 @@ function App() {
   });
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const allSubstations = getEffectiveSubstations(substations, networkProjects, 2035);
-  const selected = allSubstations.find((s) => s.id === selectedId) || null;
+  const allSubstations = useMemo(
+    () => getEffectiveSubstations(substations, networkProjects, 2035),
+    [substations, networkProjects],
+  );
+  const selected = useMemo(
+    () => allSubstations.find((s) => s.id === selectedId) || null,
+    [allSubstations, selectedId],
+  );
 
   // ── Autosave ───────────────────────────────────────────────────────────────
   useEffect(() => {
     saveState(substations, networkProjects, activityLog);
   }, [substations, networkProjects, activityLog]);
+
+  useEffect(() => {
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  }, [view, selectedId, selectedReqId]);
 
   // ── Data handlers ──────────────────────────────────────────────────────────
   const handleUpdate = (updated) =>
@@ -175,7 +186,7 @@ function App() {
         <div className="app-layout__main">
           <Topbar view={view} detailName={selected?.name} onBack={handleBack} />
 
-          <div className="app-layout__content">
+          <div className="app-layout__content" ref={contentRef}>
             {sessionBanner && (
               <div className="session-banner">
                 <span>Session précédente restaurée depuis le {fmtDate(savedAt || new Date())}</span>

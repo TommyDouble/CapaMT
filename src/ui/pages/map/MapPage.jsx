@@ -265,7 +265,7 @@ export function MapPage({
         style={{
           padding: '8px 16px',
           borderBottom: '1px solid var(--border)',
-          background: 'var(--surface)',
+          background: 'var(--bg-surface)',
           display: 'flex',
           alignItems: 'center',
           gap: 12,
@@ -294,7 +294,7 @@ export function MapPage({
               padding: '4px 8px',
               border: '1px solid var(--border)',
               borderRadius: 6,
-              background: 'var(--surface)',
+              background: 'var(--bg-surface)',
               color: 'var(--text-primary)',
               cursor: 'pointer',
             }}
@@ -325,7 +325,7 @@ export function MapPage({
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 fontWeight: 600,
-                background: viewMode === v ? 'var(--accent)' : 'var(--surface)',
+                background: viewMode === v ? 'var(--accent)' : 'var(--bg-surface)',
                 color: viewMode === v ? '#fff' : 'var(--text-primary)',
               }}
             >
@@ -345,7 +345,7 @@ export function MapPage({
             cursor: 'pointer',
             fontFamily: 'inherit',
             fontWeight: 600,
-            background: showRequests ? '#0891b2' : 'var(--surface)',
+            background: showRequests ? '#0891b2' : 'var(--bg-surface)',
             color: showRequests ? '#fff' : 'var(--text-primary)',
           }}
         >
@@ -635,7 +635,7 @@ export function MapPage({
               maxHeight: 'calc(100% - 24px)',
               display: 'flex',
               flexDirection: 'column',
-              background: 'var(--surface)',
+              background: 'var(--bg-surface)',
               border: '1px solid var(--border)',
               borderRadius: 8,
               boxShadow: '0 12px 30px rgba(15,23,42,.18)',

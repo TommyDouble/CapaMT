@@ -45,6 +45,27 @@ describe('capacity impact canonique', () => {
     expect(impact.connectedReleaseMode).toBe('automatic');
   });
 
+  it('n’utilise pas un cache obsolète quand la date de calcul change', () => {
+    const req = connectedRequest({ offerDates: { connectedAt: '2026-01-01' }, load: 5 });
+
+    expect(computeCapacityImpact(req, new Date('2026-06-30T00:00:00Z')).status).toBe(
+      'CONNECTED_RESERVED',
+    );
+    expect(computeCapacityImpact(req, new Date('2026-08-02T00:00:00Z')).status).toBe(
+      'CONNECTED_RELEASED',
+    );
+  });
+
+  it('n’utilise pas un cache obsolète quand le dossier est modifié en place', () => {
+    const req = canonicalRequest({ load: 4 });
+
+    expect(computeCapacityImpact(req).status).toBe('QUEUE_RESERVED');
+
+    req.customer.status = 'cancelled';
+
+    expect(computeCapacityImpact(req).status).toBe('RELEASED');
+  });
+
   it('libère manuellement un dossier raccordé avant échéance', () => {
     const req = connectedRequest({
       offerDates: { connectedAt: '2026-01-01', connectedReleasedAt: '2026-03-01' },
