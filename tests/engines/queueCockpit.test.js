@@ -5,7 +5,12 @@ import {
   filterQueueCockpitRows,
   sortQueueCockpitRows,
 } from '../../src/engines/queueCockpit.js';
-import { canonicalRequest, canonicalSubstation, connectedRequest, studiedRequest } from '../helpers/canonicalFixtures.js';
+import {
+  canonicalRequest,
+  canonicalSubstation,
+  connectedRequest,
+  studiedRequest,
+} from '../helpers/canonicalFixtures.js';
 
 describe('cockpit global canonique', () => {
   it('produit des lignes actionnables depuis customer, assessment et offer', () => {
@@ -20,7 +25,7 @@ describe('cockpit global canonique', () => {
 
     expect(rows).toHaveLength(2);
     expect(rows[0].customerName).toBe('Client A');
-    expect(rows.map(row => row.impactStatus)).toEqual(['QUEUE_RESERVED', 'STUDY_RESERVED']);
+    expect(rows.map((row) => row.impactStatus)).toEqual(['QUEUE_RESERVED', 'STUDY_RESERVED']);
   });
 
   it('filtre et trie les lignes sans adapter de données', () => {
@@ -33,7 +38,9 @@ describe('cockpit global canonique', () => {
     const rows = buildQueueCockpitRows([sub]);
 
     expect(filterQueueCockpitRows(rows, 'ready_study')).toHaveLength(2);
-    expect(sortQueueCockpitRows(rows, { field: 'customer', direction: 'asc' })[0].customerName).toBe('Alpha');
+    expect(
+      sortQueueCockpitRows(rows, { field: 'customer', direction: 'asc' })[0].customerName,
+    ).toBe('Alpha');
   });
 
   it('agrège les réservations actives', () => {
@@ -61,7 +68,7 @@ describe('cockpit global canonique', () => {
     const rows = buildQueueCockpitRows([sub]);
     const stats = buildQueueCockpitStats(rows);
 
-    expect(rows.map(row => row.req.id)).toEqual(['ready']);
+    expect(rows.map((row) => row.req.id)).toEqual(['ready']);
     expect(stats.byStep.closed).toBe(0);
     expect(stats.activeReservedMva).toBe(5);
   });

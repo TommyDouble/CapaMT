@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { calcCapacityN, calcCapacityN1, getCapacityAtYear, getCapacityNAtYear } from '../../src/engines/capacity.js';
+import {
+  calcCapacityN,
+  calcCapacityN1,
+  getCapacityAtYear,
+  getCapacityNAtYear,
+} from '../../src/engines/capacity.js';
 import { canonicalSubstation } from '../helpers/canonicalFixtures.js';
 
 describe('capacités transformateur canoniques', () => {
@@ -23,14 +28,16 @@ describe('capacités transformateur canoniques', () => {
       id: 'proj-1',
       status: 'validé',
       year: 2027,
-      effects: [{
-        ssId: sub.id,
-        action: 'modify_tfo',
-        tfoChanges: { remove: [], add: [{ id: 't3', power: 25, role: 'normal' }], modify: [] },
-        coeffN: 0.9,
-        coeffN1: 1,
-        mtBackup: { enabled: false, capacity: 0 },
-      }],
+      effects: [
+        {
+          ssId: sub.id,
+          action: 'modify_tfo',
+          tfoChanges: { remove: [], add: [{ id: 't3', power: 25, role: 'normal' }], modify: [] },
+          coeffN: 0.9,
+          coeffN1: 1,
+          mtBackup: { enabled: false, capacity: 0 },
+        },
+      ],
     };
 
     expect(getCapacityAtYear(sub, 2027, [project])).toBe(50);

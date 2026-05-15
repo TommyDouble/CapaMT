@@ -5,7 +5,11 @@
  */
 import React, { useState } from 'react';
 import { f1 } from '../../../../utils/format.js';
-import { INJ_SOURCE_ICONS, PREV_USAGE_ICONS, getFoisonnement } from '../../../../constants/index.js';
+import {
+  INJ_SOURCE_ICONS,
+  PREV_USAGE_ICONS,
+  getFoisonnement,
+} from '../../../../constants/index.js';
 import { computeCapacityImpact } from '../../../../engines/capacityImpact.js';
 import {
   getAssessment,
@@ -59,11 +63,13 @@ function permanentDelta(requested, split) {
 
 function DeltaCell({ value }) {
   if (value == null) return <span style={{ color: 'var(--text-muted)' }}>—</span>;
-  const color = value < -0.05 ? 'var(--prelev)' : value > 0.05 ? 'var(--inj)' : 'var(--text-secondary)';
+  const color =
+    value < -0.05 ? 'var(--prelev)' : value > 0.05 ? 'var(--inj)' : 'var(--text-secondary)';
   const prefix = value > 0.05 ? '+' : '';
   return (
     <span className="mono" style={{ color, fontWeight: 800 }}>
-      {prefix}{mva(value)}
+      {prefix}
+      {mva(value)}
     </span>
   );
 }
@@ -72,12 +78,24 @@ function TraceRow({ label, requested, split, impactPermanent, impactFlexible, im
   return (
     <tr>
       <td style={tdStyle}>
-        <span style={{ fontWeight: 800, color: label === 'Injection' ? 'var(--inj)' : 'var(--prelev)' }}>{label}</span>
+        <span
+          style={{ fontWeight: 800, color: label === 'Injection' ? 'var(--inj)' : 'var(--prelev)' }}
+        >
+          {label}
+        </span>
       </td>
-      <td style={tdStyle} className="mono">{mva(requested)}</td>
-      <td style={tdStyle} className="mono">{splitValue(split)}</td>
-      <td style={tdStyle} className="mono">{impactValue(impactPermanent, impactFlexible, impactStatus)}</td>
-      <td style={tdStyle}><DeltaCell value={permanentDelta(requested, split)} /></td>
+      <td style={tdStyle} className="mono">
+        {mva(requested)}
+      </td>
+      <td style={tdStyle} className="mono">
+        {splitValue(split)}
+      </td>
+      <td style={tdStyle} className="mono">
+        {impactValue(impactPermanent, impactFlexible, impactStatus)}
+      </td>
+      <td style={tdStyle}>
+        <DeltaCell value={permanentDelta(requested, split)} />
+      </td>
     </tr>
   );
 }
@@ -103,29 +121,49 @@ const tdStyle = {
 };
 
 function DetailList({ title, items, kind }) {
-  if (!items || items.length === 0) return (
-    <div style={detailBoxStyle}>
-      <p style={detailTitleStyle}>{title}</p>
-      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Aucun détail encodé.</p>
-    </div>
-  );
+  if (!items || items.length === 0)
+    return (
+      <div style={detailBoxStyle}>
+        <p style={detailTitleStyle}>{title}</p>
+        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Aucun détail encodé.</p>
+      </div>
+    );
 
   return (
     <div style={detailBoxStyle}>
       <p style={detailTitleStyle}>{title}</p>
       <div style={{ display: 'grid', gap: 5 }}>
         {items.map((item, index) => {
-          const icon = kind === 'load'
-            ? (PREV_USAGE_ICONS[item.type] || '•')
-            : (INJ_SOURCE_ICONS[item.source] || '•');
+          const icon =
+            kind === 'load'
+              ? PREV_USAGE_ICONS[item.type] || '•'
+              : INJ_SOURCE_ICONS[item.source] || '•';
           const label = item.label || item.type || item.source || 'Composant';
-          const flag = kind === 'load'
-            ? (item.flexible ? 'flexible' : 'ferme')
-            : (item.curtailable ? 'curtailable' : 'garantie');
+          const flag =
+            kind === 'load'
+              ? item.flexible
+                ? 'flexible'
+                : 'ferme'
+              : item.curtailable
+                ? 'curtailable'
+                : 'garantie';
           return (
-            <div key={item.id || index} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, color: 'var(--text-secondary)' }}>
-              <span>{icon} {label} · {flag}</span>
-              <span className="mono" style={{ fontWeight: 800 }}>{mva(item.powerMva)}</span>
+            <div
+              key={item.id || index}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 8,
+                fontSize: 11,
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <span>
+                {icon} {label} · {flag}
+              </span>
+              <span className="mono" style={{ fontWeight: 800 }}>
+                {mva(item.powerMva)}
+              </span>
             </div>
           );
         })}
@@ -151,12 +189,17 @@ const detailTitleStyle = {
 };
 
 function impactRule(impact) {
-  if (impact.status === 'QUEUE_RESERVED') return 'Dossier en file: la réservation active provient de la puissance demandée par le client.';
-  if (impact.status === 'STUDY_RESERVED') return 'Étude finalisée: la réservation active provient de la réponse technique.';
-  if (impact.status === 'ACQUIRED') return 'Offre acceptée: la capacité reste acquise jusqu’au raccordement.';
+  if (impact.status === 'QUEUE_RESERVED')
+    return 'Dossier en file: la réservation active provient de la puissance demandée par le client.';
+  if (impact.status === 'STUDY_RESERVED')
+    return 'Étude finalisée: la réservation active provient de la réponse technique.';
+  if (impact.status === 'ACQUIRED')
+    return 'Offre acceptée: la capacité reste acquise jusqu’au raccordement.';
   if (impact.status === 'RELEASED') return 'Dossier annulé ou refusé: la capacité est libérée.';
-  if (impact.status === 'CONNECTED_RESERVED') return 'Dossier raccordé: la capacité reste maintenue temporairement.';
-  if (impact.status === 'CONNECTED_RELEASED') return 'Dossier raccordé: le délai de maintien est dépassé et l’impact est nul.';
+  if (impact.status === 'CONNECTED_RESERVED')
+    return 'Dossier raccordé: la capacité reste maintenue temporairement.';
+  if (impact.status === 'CONNECTED_RELEASED')
+    return 'Dossier raccordé: le délai de maintien est dépassé et l’impact est nul.';
   return 'Dossier incomplet ou sans impact capacitaire actif.';
 }
 
@@ -177,17 +220,45 @@ export function CasePowerComparison({ req, sub }) {
 
   return (
     <div className="card" style={{ padding: '14px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginBottom: 14,
+        }}
+      >
         <div>
-          <p style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--accent)' }}>
+          <p
+            style={{
+              fontSize: 10,
+              fontWeight: 900,
+              textTransform: 'uppercase',
+              letterSpacing: '.07em',
+              color: 'var(--accent)',
+            }}
+          >
             Traçabilité des puissances
           </p>
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
             Demande client, réponse technique et impact réellement compté.
           </p>
         </div>
-        <button type="button" onClick={() => setShowDetail(s => !s)}
-          style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button
+          type="button"
+          onClick={() => setShowDetail((s) => !s)}
+          style={{
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            background: 'none',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            padding: '5px 10px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
           {showDetail ? 'Réduire' : 'Détail calcul'}
         </button>
       </div>
@@ -226,7 +297,9 @@ export function CasePowerComparison({ req, sub }) {
             )}
             {!hasLoad && !hasInjection && (
               <tr>
-                <td colSpan={5} style={{ ...tdStyle, color: 'var(--text-muted)' }}>Aucune puissance demandée.</td>
+                <td colSpan={5} style={{ ...tdStyle, color: 'var(--text-muted)' }}>
+                  Aucune puissance demandée.
+                </td>
               </tr>
             )}
           </tbody>
@@ -234,37 +307,64 @@ export function CasePowerComparison({ req, sub }) {
       </div>
 
       {showDetail && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginTop: 12 }}>
-          <DetailList title="Détail usages client" items={customer.powerBreakdown?.load || []} kind="load" />
-          <DetailList title="Détail sources injection" items={customer.powerBreakdown?.injection || []} kind="injection" />
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 10,
+            marginTop: 12,
+          }}
+        >
+          <DetailList
+            title="Détail usages client"
+            items={customer.powerBreakdown?.load || []}
+            kind="load"
+          />
+          <DetailList
+            title="Détail sources injection"
+            items={customer.powerBreakdown?.injection || []}
+            kind="injection"
+          />
           <div style={detailBoxStyle}>
             <p style={detailTitleStyle}>Foisonnement et source</p>
             <div style={{ display: 'grid', gap: 5, fontSize: 11, color: 'var(--text-secondary)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                 <span>Coefficient {type}</span>
-                <span className="mono" style={{ fontWeight: 800 }}>×{foisonnement.toFixed(2)}</span>
+                <span className="mono" style={{ fontWeight: 800 }}>
+                  ×{foisonnement.toFixed(2)}
+                </span>
               </div>
               {hasLoad && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                   <span>Impact prélèvement foisonné</span>
-                  <span className="mono" style={{ fontWeight: 800 }}>{mva(loadImpactFoisoned)}</span>
+                  <span className="mono" style={{ fontWeight: 800 }}>
+                    {mva(loadImpactFoisoned)}
+                  </span>
                 </div>
               )}
               {hasInjection && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                   <span>Impact injection foisonné</span>
-                  <span className="mono" style={{ fontWeight: 800 }}>{mva(injectionImpactFoisoned)}</span>
+                  <span className="mono" style={{ fontWeight: 800 }}>
+                    {mva(injectionImpactFoisoned)}
+                  </span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                 <span>Statut impact</span>
-                <span style={{ fontWeight: 800 }}>{IMPACT_LABELS[impact.status] || impact.status}</span>
+                <span style={{ fontWeight: 800 }}>
+                  {IMPACT_LABELS[impact.status] || impact.status}
+                </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                 <span>Source</span>
-                <span style={{ fontWeight: 800 }}>{SOURCE_LABELS[impact.source] || impact.source}</span>
+                <span style={{ fontWeight: 800 }}>
+                  {SOURCE_LABELS[impact.source] || impact.source}
+                </span>
               </div>
-              <p style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.45 }}>
+              <p
+                style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.45 }}
+              >
                 {impactRule(impact)}
               </p>
             </div>

@@ -15,9 +15,11 @@ export function canEditCustomer(req) {
   const customer = getCustomer(req);
   const assessment = getAssessment(req);
   const offer = getOffer(req);
-  return customer.status !== 'cancelled'
-    && assessment.status === 'not_started'
-    && !isOfferFinal(offer.status);
+  return (
+    customer.status !== 'cancelled' &&
+    assessment.status === 'not_started' &&
+    !isOfferFinal(offer.status)
+  );
 }
 
 export function canStartStudy(req) {
@@ -48,7 +50,8 @@ export function getAllowedOfferTransitions(req) {
   const offer = getOffer(req);
   if (!canEditOffer(req)) return [];
   if (offer.status === 'not_applicable') return ['offer_formulated'];
-  if (offer.status === 'offer_formulated') return ['offer_expired', 'offer_cancelled', 'offer_accepted'];
+  if (offer.status === 'offer_formulated')
+    return ['offer_expired', 'offer_cancelled', 'offer_accepted'];
   if (offer.status === 'offer_expired') return ['offer_cancelled', 'offer_accepted'];
   if (offer.status === 'offer_accepted') return ['offer_connected'];
   return [];
@@ -58,7 +61,8 @@ export function getPrimaryAction(req) {
   const customer = getCustomer(req);
   const assessment = getAssessment(req);
   const offer = getOffer(req);
-  if (customer.status === 'incomplete') return { key: 'EDIT_CUSTOMER', label: 'Compléter la demande' };
+  if (customer.status === 'incomplete')
+    return { key: 'EDIT_CUSTOMER', label: 'Compléter la demande' };
   if (canStartStudy(req)) return { key: 'START_STUDY', label: 'Prendre en charge' };
   if (assessment.status === 'under_study') {
     const remaining = readNextActions(assessment);

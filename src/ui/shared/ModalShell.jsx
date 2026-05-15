@@ -14,10 +14,20 @@ import React, { useEffect } from 'react';
  *   children    — body content
  */
 export function ModalShell({
-  title, subtitle, onClose, wide, steps, activeStep, onStepClick, footer, children,
+  title,
+  subtitle,
+  onClose,
+  wide,
+  steps,
+  activeStep,
+  onStepClick,
+  footer,
+  children,
 }) {
   useEffect(() => {
-    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
@@ -26,15 +36,17 @@ export function ModalShell({
     <div className="v3-modal-backdrop" onClick={onClose}>
       <div
         className={`v3-modal${wide ? ' v3-modal--wide' : ''}`}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="v3-modal__header">
           <div>
-            {title    && <h3>{title}</h3>}
+            {title && <h3>{title}</h3>}
             {subtitle && <p>{subtitle}</p>}
           </div>
-          <button className="v3-modal__close" onClick={onClose}>×</button>
+          <button className="v3-modal__close" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         {/* Steps indicator (optional — wizard only) */}
@@ -46,23 +58,18 @@ export function ModalShell({
                 className={`v3-modal__step${activeStep === i ? ' active' : ''}${activeStep > i ? ' done' : ''}`}
                 onClick={() => onStepClick?.(i)}
               >
-                {activeStep > i ? '✓ ' : ''}{s}
+                {activeStep > i ? '✓ ' : ''}
+                {s}
               </button>
             ))}
           </div>
         )}
 
         {/* Body */}
-        <div className="v3-modal__body">
-          {children}
-        </div>
+        <div className="v3-modal__body">{children}</div>
 
         {/* Footer */}
-        {footer && (
-          <div className="v3-modal__footer">
-            {footer}
-          </div>
-        )}
+        {footer && <div className="v3-modal__footer">{footer}</div>}
       </div>
     </div>
   );

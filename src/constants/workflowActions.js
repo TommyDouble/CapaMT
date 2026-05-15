@@ -11,12 +11,12 @@
  */
 
 export const ACTION_CODES = Object.freeze({
-  DEMANDER_CAPAC:           'DEMANDER_CAPAC',
-  ENCODER_RETOUR_CAPAC:     'ENCODER_RETOUR_CAPAC',
-  COMPLETER_DONNEES_POSTE:  'COMPLETER_DONNEES_POSTE',
-  FINALISER_ETUDE_RESEAU:   'FINALISER_ETUDE_RESEAU',
-  COMPLETER_DONNEES:        'COMPLETER_DONNEES',
-  TRAITER_BLOCAGE:          'TRAITER_BLOCAGE',
+  DEMANDER_CAPAC: 'DEMANDER_CAPAC',
+  ENCODER_RETOUR_CAPAC: 'ENCODER_RETOUR_CAPAC',
+  COMPLETER_DONNEES_POSTE: 'COMPLETER_DONNEES_POSTE',
+  FINALISER_ETUDE_RESEAU: 'FINALISER_ETUDE_RESEAU',
+  COMPLETER_DONNEES: 'COMPLETER_DONNEES',
+  TRAITER_BLOCAGE: 'TRAITER_BLOCAGE',
 });
 
 /**
@@ -29,18 +29,38 @@ export const ACTION_CODES = Object.freeze({
 
 /** @type {Readonly<Record<string, WorkflowAction>>} */
 export const WORKFLOW_ACTIONS = Object.freeze({
-  DEMANDER_CAPAC:          { code: 'DEMANDER_CAPAC',          label: 'Demande CAPAC à effectuer',      fromSource: 'UPSTREAM'   },
-  ENCODER_RETOUR_CAPAC:    { code: 'ENCODER_RETOUR_CAPAC',    label: 'Encoder retour CAPAC',           fromSource: null         },
-  COMPLETER_DONNEES_POSTE: { code: 'COMPLETER_DONNEES_POSTE', label: 'Compléter local / sous-station', fromSource: 'SUBSTATION' },
-  FINALISER_ETUDE_RESEAU:  { code: 'FINALISER_ETUDE_RESEAU',  label: 'Finaliser réseau MT',            fromSource: 'NETWORK'    },
-  COMPLETER_DONNEES:       { code: 'COMPLETER_DONNEES',       label: 'Compléter les données',          fromSource: null         },
-  TRAITER_BLOCAGE:         { code: 'TRAITER_BLOCAGE',         label: 'Traiter le blocage',             fromSource: null         },
+  DEMANDER_CAPAC: {
+    code: 'DEMANDER_CAPAC',
+    label: 'Demande CAPAC à effectuer',
+    fromSource: 'UPSTREAM',
+  },
+  ENCODER_RETOUR_CAPAC: {
+    code: 'ENCODER_RETOUR_CAPAC',
+    label: 'Encoder retour CAPAC',
+    fromSource: null,
+  },
+  COMPLETER_DONNEES_POSTE: {
+    code: 'COMPLETER_DONNEES_POSTE',
+    label: 'Compléter local / sous-station',
+    fromSource: 'SUBSTATION',
+  },
+  FINALISER_ETUDE_RESEAU: {
+    code: 'FINALISER_ETUDE_RESEAU',
+    label: 'Finaliser réseau MT',
+    fromSource: 'NETWORK',
+  },
+  COMPLETER_DONNEES: {
+    code: 'COMPLETER_DONNEES',
+    label: 'Compléter les données',
+    fromSource: null,
+  },
+  TRAITER_BLOCAGE: { code: 'TRAITER_BLOCAGE', label: 'Traiter le blocage', fromSource: null },
 });
 
 const SOURCE_TO_ACTION = Object.fromEntries(
   Object.values(WORKFLOW_ACTIONS)
-    .filter(action => action.fromSource)
-    .map(action => [action.fromSource, action.code])
+    .filter((action) => action.fromSource)
+    .map((action) => [action.fromSource, action.code]),
 );
 
 export function actionForSource(source) {

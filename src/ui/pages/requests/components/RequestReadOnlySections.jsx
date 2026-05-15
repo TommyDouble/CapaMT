@@ -17,7 +17,7 @@ import {
 } from '../../../shared/badges.jsx';
 
 function finalStatusFromSplits(splits = []) {
-  const statuses = splits.map(split => split?.status).filter(Boolean);
+  const statuses = splits.map((split) => split?.status).filter(Boolean);
   if (!statuses.length || statuses.includes('PENDING')) return 'PENDING';
   if (statuses.includes('KO')) return 'KO';
   if (statuses.includes('LIMIT')) return 'LIMIT';
@@ -28,7 +28,8 @@ function finalStatusFromSplits(splits = []) {
 function formatFinalResponse(load, injection) {
   const parts = [];
   if (load) parts.push(`Prél. ${f1(load.permanent)} permanent + ${f1(load.flexible)} flexible`);
-  if (injection) parts.push(`Inj. ${f1(injection.permanent)} permanent + ${f1(injection.flexible)} flexible`);
+  if (injection)
+    parts.push(`Inj. ${f1(injection.permanent)} permanent + ${f1(injection.flexible)} flexible`);
   return parts.join(' · ') || 'Non applicable';
 }
 
@@ -44,9 +45,19 @@ function constraintLabel(value) {
 
 function SummaryLine({ label, value, mono = false, muted = false }) {
   return (
-    <p style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+    <p
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: 12,
+        alignItems: 'flex-start',
+      }}
+    >
       <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-      <strong className={mono ? 'mono' : undefined} style={{ color: muted ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right' }}>
+      <strong
+        className={mono ? 'mono' : undefined}
+        style={{ color: muted ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right' }}
+      >
         {value || '—'}
       </strong>
     </p>
@@ -80,30 +91,102 @@ function impactSourceLabel(source) {
 
 function ImpactCapacityBanner({ impact }) {
   return (
-    <div className="card" style={{ padding: 14, borderLeft: '4px solid var(--accent)', background: 'var(--bg-raised)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+    <div
+      className="card"
+      style={{ padding: 14, borderLeft: '4px solid var(--accent)', background: 'var(--bg-raised)' }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 14,
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+        }}
+      >
         <div style={{ minWidth: 180 }}>
-          <p style={{ fontSize: 10, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 7 }}>
+          <p
+            style={{
+              fontSize: 10,
+              fontWeight: 900,
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '.06em',
+              marginBottom: 7,
+            }}
+          >
             Impact capacité calculé
           </p>
           <CapacityImpactChip impact={impact.status} size="xs" />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(160px, 1fr))', gap: 12, flex: '1 1 560px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(160px, 1fr))',
+            gap: 12,
+            flex: '1 1 560px',
+          }}
+        >
           <div>
-            <p style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em' }}>Prélèvement réservé</p>
-            <p className="mono" style={{ fontSize: 13, fontWeight: 800, color: 'var(--prelev)', marginTop: 3 }}>
-              {f1(impact.reservedLoadPermanent)} permanent + {f1(impact.reservedLoadFlexible)} flexible
+            <p
+              style={{
+                fontSize: 10,
+                color: 'var(--text-muted)',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '.05em',
+              }}
+            >
+              Prélèvement réservé
+            </p>
+            <p
+              className="mono"
+              style={{ fontSize: 13, fontWeight: 800, color: 'var(--prelev)', marginTop: 3 }}
+            >
+              {f1(impact.reservedLoadPermanent)} permanent + {f1(impact.reservedLoadFlexible)}{' '}
+              flexible
             </p>
           </div>
           <div>
-            <p style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em' }}>Injection réservée</p>
-            <p className="mono" style={{ fontSize: 13, fontWeight: 800, color: 'var(--inj)', marginTop: 3 }}>
-              {f1(impact.reservedInjectionPermanent)} permanent + {f1(impact.reservedInjectionFlexible)} flexible
+            <p
+              style={{
+                fontSize: 10,
+                color: 'var(--text-muted)',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '.05em',
+              }}
+            >
+              Injection réservée
+            </p>
+            <p
+              className="mono"
+              style={{ fontSize: 13, fontWeight: 800, color: 'var(--inj)', marginTop: 3 }}
+            >
+              {f1(impact.reservedInjectionPermanent)} permanent +{' '}
+              {f1(impact.reservedInjectionFlexible)} flexible
             </p>
           </div>
           <div>
-            <p style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em' }}>Source</p>
-            <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-secondary)', marginTop: 3 }}>
+            <p
+              style={{
+                fontSize: 10,
+                color: 'var(--text-muted)',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '.05em',
+              }}
+            >
+              Source
+            </p>
+            <p
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                color: 'var(--text-secondary)',
+                marginTop: 3,
+              }}
+            >
               {impactSourceLabel(impact.source)}
             </p>
           </div>
@@ -116,11 +199,31 @@ function ImpactCapacityBanner({ impact }) {
 function InfoCard({ title, badge, children }) {
   return (
     <div className="card" style={{ padding: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-        <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{title}</p>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 8,
+          alignItems: 'center',
+          marginBottom: 10,
+        }}
+      >
+        <p
+          style={{
+            fontSize: 10,
+            fontWeight: 800,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '.06em',
+          }}
+        >
+          {title}
+        </p>
         {badge}
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{children}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -130,8 +233,9 @@ export function RequestReadOnlySections({ req, queueItem }) {
   const assessment = getAssessment(req);
   const offer = getOffer(req);
   const impact = computeCapacityImpact(req);
-  const finalReady = assessment.status === 'studied'
-    && finalStatusFromSplits([assessment.final?.load, assessment.final?.injection]) !== 'PENDING';
+  const finalReady =
+    assessment.status === 'studied' &&
+    finalStatusFromSplits([assessment.final?.load, assessment.final?.injection]) !== 'PENDING';
   const qualifiedConstraint = finalReady && isQualifiedLimitingConstraint(assessment);
   const [offerDateLabel, offerDate] = offerDateLine(offer);
   const requestDate = customer.requestDate || null;
@@ -141,21 +245,56 @@ export function RequestReadOnlySections({ req, queueItem }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-        <InfoCard title="Demande client" badge={<CustomerStatusBadge status={customer.status} size="xs" />}>
-          <SummaryLine label="Puissance demandée" value={`Prél. ${f1(getRequestedLoad(req))} MVA · Inj. ${f1(getRequestedInjection(req))} MVA`} mono />
-          <SummaryLine label="Date de demande" value={requestDate ? fmtShortDate(requestDate) : '—'} mono />
-          <SummaryLine label="Priorité FIFO" value={readyForStudyAt ? fmtShortDate(readyForStudyAt) : '—'} mono />
-          <SummaryLine label="Rang FIFO" value={fifoRank != null ? `#${fifoRank}` : 'hors file'} mono muted={fifoRank == null} />
+        <InfoCard
+          title="Demande client"
+          badge={<CustomerStatusBadge status={customer.status} size="xs" />}
+        >
+          <SummaryLine
+            label="Puissance demandée"
+            value={`Prél. ${f1(getRequestedLoad(req))} MVA · Inj. ${f1(getRequestedInjection(req))} MVA`}
+            mono
+          />
+          <SummaryLine
+            label="Date de demande"
+            value={requestDate ? fmtShortDate(requestDate) : '—'}
+            mono
+          />
+          <SummaryLine
+            label="Priorité FIFO"
+            value={readyForStudyAt ? fmtShortDate(readyForStudyAt) : '—'}
+            mono
+          />
+          <SummaryLine
+            label="Rang FIFO"
+            value={fifoRank != null ? `#${fifoRank}` : 'hors file'}
+            mono
+            muted={fifoRank == null}
+          />
         </InfoCard>
-        <InfoCard title="Étude technique" badge={<AssessmentStatusBadge status={assessment.status} size="xs" />}>
-          <SummaryLine label="Date d'étude" value={assessment.assessedAt ? fmtShortDate(assessment.assessedAt) : '—'} mono />
+        <InfoCard
+          title="Étude technique"
+          badge={<AssessmentStatusBadge status={assessment.status} size="xs" />}
+        >
+          <SummaryLine
+            label="Date d'étude"
+            value={assessment.assessedAt ? fmtShortDate(assessment.assessedAt) : '—'}
+            mono
+          />
           <SummaryLine
             label="Réponse finale"
-            value={finalReady ? formatFinalResponse(assessment.final?.load, assessment.final?.injection) : 'À compléter'}
+            value={
+              finalReady
+                ? formatFinalResponse(assessment.final?.load, assessment.final?.injection)
+                : 'À compléter'
+            }
           />
           <SummaryLine
             label="Contrainte"
-            value={qualifiedConstraint ? constraintLabel(assessment.final?.limitingConstraint) : 'À déterminer'}
+            value={
+              qualifiedConstraint
+                ? constraintLabel(assessment.final?.limitingConstraint)
+                : 'À déterminer'
+            }
           />
           {assessment.final?.load?.reason && (
             <p style={{ marginTop: 5 }}>
@@ -164,19 +303,45 @@ export function RequestReadOnlySections({ req, queueItem }) {
             </p>
           )}
         </InfoCard>
-        <InfoCard title="Offre / raccordement" badge={<OfferStatusBadge status={offer.status} size="xs" />}>
-          <SummaryLine label={offerDateLabel} value={offerDate ? fmtShortDate(offerDate) : '—'} mono />
+        <InfoCard
+          title="Offre / raccordement"
+          badge={<OfferStatusBadge status={offer.status} size="xs" />}
+        >
+          <SummaryLine
+            label={offerDateLabel}
+            value={offerDate ? fmtShortDate(offerDate) : '—'}
+            mono
+          />
           {offer.status === 'offer_connected' && (
             <>
-              <SummaryLine label="Maintien capacité" value={`${impact.retentionMonths || offer.connectedRetentionMonths || '—'} mois`} mono />
-              <SummaryLine label="Fin maintien" value={impact.retentionUntil ? fmtShortDate(impact.retentionUntil) : '—'} mono />
-              <SummaryLine label="Impact raccordé" value={impact.status === 'CONNECTED_RESERVED' ? 'Comptabilisé' : 'Non comptabilisé'} />
+              <SummaryLine
+                label="Maintien capacité"
+                value={`${impact.retentionMonths || offer.connectedRetentionMonths || '—'} mois`}
+                mono
+              />
+              <SummaryLine
+                label="Fin maintien"
+                value={impact.retentionUntil ? fmtShortDate(impact.retentionUntil) : '—'}
+                mono
+              />
+              <SummaryLine
+                label="Impact raccordé"
+                value={impact.status === 'CONNECTED_RESERVED' ? 'Comptabilisé' : 'Non comptabilisé'}
+              />
               {impact.connectedReleasedAt && (
-                <SummaryLine label="Libération manuelle" value={fmtShortDate(impact.connectedReleasedAt)} mono />
+                <SummaryLine
+                  label="Libération manuelle"
+                  value={fmtShortDate(impact.connectedReleasedAt)}
+                  mono
+                />
               )}
             </>
           )}
-          <p>{offer.status === 'not_applicable' ? 'Aucune offre formulée.' : 'Suivi commercial actif.'}</p>
+          <p>
+            {offer.status === 'not_applicable'
+              ? 'Aucune offre formulée.'
+              : 'Suivi commercial actif.'}
+          </p>
           {offer.comment && (
             <p style={{ marginTop: 5 }}>
               <span style={{ color: 'var(--text-muted)' }}>Commentaire offre: </span>

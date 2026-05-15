@@ -2,14 +2,39 @@ import { computeCapacityImpact } from './capacityImpact.js';
 import { getAssessment, getCustomer, getOffer } from './requestModel.js';
 
 export const REQUEST_PHASES = {
-  incomplete: { label: 'À compléter', color: '#d97706', bg: '#fffbeb', border: '#fde68a', order: 1 },
+  incomplete: {
+    label: 'À compléter',
+    color: '#d97706',
+    bg: '#fffbeb',
+    border: '#fde68a',
+    order: 1,
+  },
   deposee: { label: 'Déposée', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', order: 2 },
   etude: { label: 'En étude', color: '#0369a1', bg: '#e0f2fe', border: '#7dd3fc', order: 3 },
-  conditionnelle: { label: 'Conditionnelle', color: '#92400e', bg: '#fffbeb', border: '#fde68a', order: 4 },
+  conditionnelle: {
+    label: 'Conditionnelle',
+    color: '#92400e',
+    bg: '#fffbeb',
+    border: '#fde68a',
+    order: 4,
+  },
   acceptable: { label: 'Acceptable', color: '#166534', bg: '#f0fdf4', border: '#bbf7d0', order: 5 },
   expiree: { label: 'Offre expirée', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', order: 6 },
-  raccordee: { label: 'Raccordée maintenue', color: '#065f46', bg: '#ecfdf5', border: '#6ee7b7', order: 7 },
-  liberee: { label: 'Libérée', color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', order: 0, strike: true },
+  raccordee: {
+    label: 'Raccordée maintenue',
+    color: '#065f46',
+    bg: '#ecfdf5',
+    border: '#6ee7b7',
+    order: 7,
+  },
+  liberee: {
+    label: 'Libérée',
+    color: '#6b7280',
+    bg: '#f9fafb',
+    border: '#e5e7eb',
+    order: 0,
+    strike: true,
+  },
 };
 
 function finalStatuses(assessment) {
@@ -18,7 +43,12 @@ function finalStatuses(assessment) {
 
 function derivePhaseKey({ customer, assessment, offer, impact }) {
   const statuses = finalStatuses(assessment);
-  if (customer.status === 'cancelled' || offer.status === 'offer_cancelled' || impact.status === 'RELEASED') return 'liberee';
+  if (
+    customer.status === 'cancelled' ||
+    offer.status === 'offer_cancelled' ||
+    impact.status === 'RELEASED'
+  )
+    return 'liberee';
   if (impact.status === 'CONNECTED_RELEASED') return 'liberee';
   if (offer.status === 'offer_connected') return 'raccordee';
   if (offer.status === 'offer_expired') return 'expiree';
@@ -56,7 +86,10 @@ export function buildRequestStatusSummary(req) {
     deposee: 'Lancer l’étude de raccordement.',
     etude: 'Finaliser les réponses techniques attendues.',
     conditionnelle: 'Valider la condition réseau ou ajuster la réponse.',
-    acceptable: offer.status === 'offer_accepted' ? 'Planifier le raccordement.' : 'Formuler ou suivre l’offre.',
+    acceptable:
+      offer.status === 'offer_accepted'
+        ? 'Planifier le raccordement.'
+        : 'Formuler ou suivre l’offre.',
     expiree: 'Annuler l’offre ou enregistrer une acceptation tardive.',
     raccordee: null,
     liberee: null,
@@ -84,9 +117,9 @@ export function buildRequestStatusSummary(req) {
 }
 
 export function buildQueuePhaseSummary(requests) {
-  const byPhase = Object.fromEntries(Object.keys(REQUEST_PHASES).map(key => [key, 0]));
+  const byPhase = Object.fromEntries(Object.keys(REQUEST_PHASES).map((key) => [key, 0]));
   let total = 0;
-  (requests || []).forEach(req => {
+  (requests || []).forEach((req) => {
     const summary = buildRequestStatusSummary(req);
     if (!summary) return;
     byPhase[summary.phaseKey] = (byPhase[summary.phaseKey] || 0) + 1;

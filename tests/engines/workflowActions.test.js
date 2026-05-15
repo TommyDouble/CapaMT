@@ -36,17 +36,21 @@ describe('workflowActions registry', () => {
 
     it("dérive DEMANDER_CAPAC en ENCODER_RETOUR_CAPAC quand capac.status === 'SENT'", () => {
       const ctx = { assessment: { capac: { status: 'SENT' } } };
-      expect(resolveAction(ACTION_CODES.DEMANDER_CAPAC, ctx)).toBe(ACTION_CODES.ENCODER_RETOUR_CAPAC);
+      expect(resolveAction(ACTION_CODES.DEMANDER_CAPAC, ctx)).toBe(
+        ACTION_CODES.ENCODER_RETOUR_CAPAC,
+      );
     });
 
-    it("ne dérive pas DEMANDER_CAPAC quand capac.status est différent", () => {
+    it('ne dérive pas DEMANDER_CAPAC quand capac.status est différent', () => {
       const ctx = { assessment: { capac: { status: 'RECEIVED' } } };
       expect(resolveAction(ACTION_CODES.DEMANDER_CAPAC, ctx)).toBe(ACTION_CODES.DEMANDER_CAPAC);
     });
 
     it("ne dérive pas les autres codes même si capac.status === 'SENT'", () => {
       const ctx = { assessment: { capac: { status: 'SENT' } } };
-      expect(resolveAction(ACTION_CODES.COMPLETER_DONNEES_POSTE, ctx)).toBe(ACTION_CODES.COMPLETER_DONNEES_POSTE);
+      expect(resolveAction(ACTION_CODES.COMPLETER_DONNEES_POSTE, ctx)).toBe(
+        ACTION_CODES.COMPLETER_DONNEES_POSTE,
+      );
     });
   });
 
@@ -56,7 +60,7 @@ describe('workflowActions registry', () => {
       expect(getActionLabel(ACTION_CODES.TRAITER_BLOCAGE)).toBe('Traiter le blocage');
     });
 
-    it("applique la dérivation contextuelle DEMANDER_CAPAC + SENT", () => {
+    it('applique la dérivation contextuelle DEMANDER_CAPAC + SENT', () => {
       const ctx = { assessment: { capac: { status: 'SENT' } } };
       expect(getActionLabel(ACTION_CODES.DEMANDER_CAPAC, ctx)).toBe('Encoder retour CAPAC');
     });
@@ -92,7 +96,7 @@ describe('workflowActions registry', () => {
 
     it('chaque fromSource est unique parmi les actions', () => {
       const sources = Object.values(WORKFLOW_ACTIONS)
-        .map(a => a.fromSource)
+        .map((a) => a.fromSource)
         .filter(Boolean);
       expect(new Set(sources).size).toBe(sources.length);
     });

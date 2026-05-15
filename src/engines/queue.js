@@ -9,7 +9,6 @@ import {
 } from './directionalSubstation.js';
 import {
   reqClientPrelevTotal,
-  reqClientInjTotal,
   reqGrdInjFerme,
   getEffectiveRigidReservation,
   getEffectiveInjRigide,
@@ -87,8 +86,11 @@ export function getExpiryInfo(req) {
   }
 
   const refDate = offer.formulatedAt || customer.readyForStudyAt || customer.requestDate;
-  const expiry = offer.expiredAt ? new Date(offer.expiredAt) : addMonths(refDate, safeNum(req.reservationMonths, 18));
-  if (!expiry || !Number.isFinite(expiry.getTime())) return { status: 'inconnu', date: null, daysLeft: null };
+  const expiry = offer.expiredAt
+    ? new Date(offer.expiredAt)
+    : addMonths(refDate, safeNum(req.reservationMonths, 18));
+  if (!expiry || !Number.isFinite(expiry.getTime()))
+    return { status: 'inconnu', date: null, daysLeft: null };
   const daysLeft = Math.ceil((expiry - today) / DAY_MS);
   if (daysLeft < 0) return { status: 'expiré', date: expiry, daysLeft };
   if (daysLeft < 90) return { status: 'bientôt', date: expiry, daysLeft };
@@ -97,7 +99,9 @@ export function getExpiryInfo(req) {
 
 function deriveDecision(req, autoDecision) {
   const assessment = getAssessment(req);
-  const statuses = [assessment.final?.load?.status, assessment.final?.injection?.status].filter(Boolean);
+  const statuses = [assessment.final?.load?.status, assessment.final?.injection?.status].filter(
+    Boolean,
+  );
   if (statuses.includes('KO')) return 'liste_attente';
   if (statuses.includes('LIMIT') || statuses.includes('FULL_FLEX')) return 'conditionnel';
   if (statuses.includes('OK')) return 'acceptable';
@@ -120,25 +124,29 @@ export function getQueueAnalysis(sub, projects = []) {
     const withdrawalBase = getWithdrawalBaseNet(sub, reqYear, securedProjects);
     const injectionBase = getInjectionBaseNet(sub, reqYear, securedProjects);
 
-    const committedWFirm = committedReservations
-      .filter(r => requestYear(r) <= reqYear)
-      .reduce((sum, r) => sum + getEffectiveRigidReservation(r) * getFoisonnement(r, sub), 0)
-      + results
-        .filter(r => requestYear(r.req) <= reqYear)
-        .reduce((sum, r) => sum + getEffectiveRigidReservation(r.req) * getFoisonnement(r.req, sub), 0);
+    const committedWFirm =
+      committedReservations
+        .filter((r) => requestYear(r) <= reqYear)
+        .reduce((sum, r) => sum + getEffectiveRigidReservation(r) * getFoisonnement(r, sub), 0) +
+      results
+        .filter((r) => requestYear(r.req) <= reqYear)
+        .reduce(
+          (sum, r) => sum + getEffectiveRigidReservation(r.req) * getFoisonnement(r.req, sub),
+          0,
+        );
 
-    const committedIFirm = committedReservations
-      .filter(r => requestYear(r) <= reqYear)
-      .reduce((sum, r) => sum + getEffectiveInjRigide(r) * getFoisonnement(r, sub), 0)
-      + results
-        .filter(r => requestYear(r.req) <= reqYear)
+    const committedIFirm =
+      committedReservations
+        .filter((r) => requestYear(r) <= reqYear)
+        .reduce((sum, r) => sum + getEffectiveInjRigide(r) * getFoisonnement(r, sub), 0) +
+      results
+        .filter((r) => requestYear(r.req) <= reqYear)
         .reduce((sum, r) => sum + getEffectiveInjRigide(r.req) * getFoisonnement(r.req, sub), 0);
 
     const withdrawalResidualBefore = capDirN1 - withdrawalBase - committedWFirm;
     const injectionMagnitude = Math.abs(injectionBase - committedIFirm);
-    const injectionResidualBefore = (injectionBase - committedIFirm) < 0
-      ? capRevN1 - injectionMagnitude
-      : capRevN1;
+    const injectionResidualBefore =
+      injectionBase - committedIFirm < 0 ? capRevN1 - injectionMagnitude : capRevN1;
 
     const powerWithdrawalNeeded = getEffectiveRigidReservation(req) * getFoisonnement(req, sub);
     const powerInjectionNeeded = getEffectiveInjRigide(req) * getFoisonnement(req, sub);
@@ -151,7 +159,8 @@ export function getQueueAnalysis(sub, projects = []) {
       autoDecision = 'acceptable';
     } else if (totalClientPrelev > 0) {
       if (withdrawalResidualBefore >= powerWithdrawalNeeded) {
-        autoDecision = withdrawalResidualNoProject >= powerWithdrawalNeeded ? 'acceptable' : 'conditionnel';
+        autoDecision =
+          withdrawalResidualNoProject >= powerWithdrawalNeeded ? 'acceptable' : 'conditionnel';
       } else {
         autoDecision = 'liste_attente';
       }
@@ -173,13 +182,18 @@ export function getQueueAnalysis(sub, projects = []) {
       autoDecision,
       decision: deriveDecision(req, autoDecision),
       expiry: getExpiryInfo(req),
-      recommendedFerme: +Math.max(0, Math.min(totalClientPrelev, withdrawalResidualBefore)).toFixed(1),
-      recommendedFlexible: +Math.max(0, totalClientPrelev - Math.min(totalClientPrelev, withdrawalResidualBefore)).toFixed(1),
-      hasFifoAlert: fifoAlerts.some(alert => alert.req.id === req.id),
+      recommendedFerme: +Math.max(0, Math.min(totalClientPrelev, withdrawalResidualBefore)).toFixed(
+        1,
+      ),
+      recommendedFlexible: +Math.max(
+        0,
+        totalClientPrelev - Math.min(totalClientPrelev, withdrawalResidualBefore),
+      ).toFixed(1),
+      hasFifoAlert: fifoAlerts.some((alert) => alert.req.id === req.id),
     });
   }
 
-  const baseItem = req => ({
+  const baseItem = (req) => ({
     req,
     position: null,
     withdrawalResidualBefore: null,
@@ -193,15 +207,21 @@ export function getQueueAnalysis(sub, projects = []) {
   });
 
   const conditionals = requests
-    .filter(req => !isActiveReservation(req)
-      && (req.conditionedOnProjectIds || []).length > 0
-      && getCustomer(req).status !== 'cancelled'
-      && getOffer(req).status !== 'offer_cancelled')
-    .map(req => ({ ...baseItem(req), autoDecision: 'conditionnel', decision: 'conditionnel' }));
+    .filter(
+      (req) =>
+        !isActiveReservation(req) &&
+        (req.conditionedOnProjectIds || []).length > 0 &&
+        getCustomer(req).status !== 'cancelled' &&
+        getOffer(req).status !== 'offer_cancelled',
+    )
+    .map((req) => ({ ...baseItem(req), autoDecision: 'conditionnel', decision: 'conditionnel' }));
 
   const cancelled = requests
-    .filter(req => getCustomer(req).status === 'cancelled' || getOffer(req).status === 'offer_cancelled')
-    .map(req => ({ ...baseItem(req), autoDecision: 'annulé', decision: 'annulé' }));
+    .filter(
+      (req) =>
+        getCustomer(req).status === 'cancelled' || getOffer(req).status === 'offer_cancelled',
+    )
+    .map((req) => ({ ...baseItem(req), autoDecision: 'annulé', decision: 'annulé' }));
 
   return { queue: results, conditionals, cancelled, fifoAlerts };
 }
@@ -216,10 +236,10 @@ export function getGlobalQueueStats(substations, projects = []) {
   let expiringSoon = 0;
   let totalMWReserved = 0;
 
-  substations.forEach(sub => {
+  substations.forEach((sub) => {
     const { queue } = getQueueAnalysis(sub, projects);
     const countedIds = new Set();
-    const countItem = item => {
+    const countItem = (item) => {
       total += 1;
       countedIds.add(item.req.id);
       totalMWReserved += getEffectiveRigidReservation(item.req) + reqGrdInjFerme(item.req);
@@ -234,13 +254,24 @@ export function getGlobalQueueStats(substations, projects = []) {
 
     queue.forEach(countItem);
     (sub.connectionRequests || [])
-      .filter(req => isActiveReservation(req) && !countedIds.has(req.id))
-      .forEach(req => countItem({
-        req,
-        decision: deriveDecision(req, 'en_analyse'),
-        expiry: getExpiryInfo(req),
-      }));
+      .filter((req) => isActiveReservation(req) && !countedIds.has(req.id))
+      .forEach((req) =>
+        countItem({
+          req,
+          decision: deriveDecision(req, 'en_analyse'),
+          expiry: getExpiryInfo(req),
+        }),
+      );
   });
 
-  return { total, acceptable, conditionnel, liste_attente, en_analyse, expired, expiringSoon, totalMWReserved };
+  return {
+    total,
+    acceptable,
+    conditionnel,
+    liste_attente,
+    en_analyse,
+    expired,
+    expiringSoon,
+    totalMWReserved,
+  };
 }

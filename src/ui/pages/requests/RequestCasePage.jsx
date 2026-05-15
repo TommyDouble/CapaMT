@@ -14,7 +14,12 @@ import { CaseActivityLog } from './components/CaseActivityLog.jsx';
 import { CaseInternalNotes } from './components/CaseInternalNotes.jsx';
 import { evaluateRequestCapacity } from '../../../engines/capacityEvaluation.js';
 import { normalizeRequest, getAssessment, getCustomer } from '../../../engines/requestModel.js';
-import { canEditCustomer, canEditOffer, canStartStudy, getPrimaryAction, lockReason } from '../../../engines/workflowRules.js';
+import {
+  canEditCustomer,
+  canEditOffer,
+  getPrimaryAction,
+  lockReason,
+} from '../../../engines/workflowRules.js';
 import { ModalShell } from '../../shared/ModalShell.jsx';
 import {
   CustomerRequestForm,
@@ -27,16 +32,34 @@ import {
 function NetworkConditionBanner({ summary }) {
   if (!summary) return null;
   return (
-    <div style={{
-      padding: '12px 16px',
-      borderRadius: 8,
-      border: `1px solid ${summary.warning ? 'rgba(217,119,6,.28)' : 'var(--border-accent)'}`,
-      background: summary.warning ? 'var(--amber-dim)' : 'var(--accent-bg)',
-      marginBottom: 12,
-    }}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+    <div
+      style={{
+        padding: '12px 16px',
+        borderRadius: 8,
+        border: `1px solid ${summary.warning ? 'rgba(217,119,6,.28)' : 'var(--border-accent)'}`,
+        background: summary.warning ? 'var(--amber-dim)' : 'var(--accent-bg)',
+        marginBottom: 12,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+        }}
+      >
         <div>
-          <p style={{ fontSize: 10, fontWeight: 900, color: summary.warning ? 'var(--amber)' : 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.07em' }}>
+          <p
+            style={{
+              fontSize: 10,
+              fontWeight: 900,
+              color: summary.warning ? 'var(--amber)' : 'var(--accent)',
+              textTransform: 'uppercase',
+              letterSpacing: '.07em',
+            }}
+          >
             Condition réseau
           </p>
           <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginTop: 3 }}>
@@ -50,16 +73,19 @@ function NetworkConditionBanner({ summary }) {
         </div>
         {summary.projects?.length > 0 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {summary.projects.map(project => (
-              <span key={project.id} style={{
-                border: '1px solid var(--border)',
-                background: 'var(--bg-raised)',
-                color: 'var(--text-secondary)',
-                borderRadius: 999,
-                padding: '4px 9px',
-                fontSize: 10,
-                fontWeight: 800,
-              }}>
+            {summary.projects.map((project) => (
+              <span
+                key={project.id}
+                style={{
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-raised)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: 999,
+                  padding: '4px 9px',
+                  fontSize: 10,
+                  fontWeight: 800,
+                }}
+              >
                 {project.status || 'statut n/a'} · MES {project.year || 'n/a'}
               </span>
             ))}
@@ -71,16 +97,23 @@ function NetworkConditionBanner({ summary }) {
 }
 
 export function RequestCasePage({
-  sub, reqId, projects, activityLog,
-  onBack, onUpdate, onActivity, onLogDelete, prevViewLabel,
+  sub,
+  reqId,
+  projects,
+  activityLog,
+  onBack,
+  onUpdate,
+  onActivity,
+  onLogDelete,
+  prevViewLabel,
 }) {
-  const req = (sub.connectionRequests || []).find(r => r.id === reqId);
+  const req = (sub.connectionRequests || []).find((r) => r.id === reqId);
   const [customerPanel, setCustomerPanel] = useState(false);
   const [offerPanel, setOfferPanel] = useState(false);
-  const [toast,     setToast]     = useState(null);
+  const [toast, setToast] = useState(null);
   const technicalPanelRef = useRef(null);
 
-  const showToast = msg => {
+  const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
   };
@@ -91,7 +124,9 @@ export function RequestCasePage({
         <p style={{ fontSize: 16, color: 'var(--text-muted)', marginBottom: 16 }}>
           Demande introuvable (id : {reqId}).
         </p>
-        <button onClick={onBack} className="btn-secondary">← Retour</button>
+        <button onClick={onBack} className="btn-secondary">
+          ← Retour
+        </button>
       </div>
     );
   }
@@ -99,7 +134,7 @@ export function RequestCasePage({
   // Queue analysis — appel unique, résultat partagé vers tous les blocs
   const { queue, conditionals, cancelled } = getQueueAnalysis(sub, projects);
   const allItems = [...queue, ...conditionals, ...cancelled];
-  const queueItem = allItems.find(item => item.req.id === reqId) || null;
+  const queueItem = allItems.find((item) => item.req.id === reqId) || null;
 
   const logActivity = (data, meta = {}) => {
     if (!onActivity || !meta.actionKey) return;
@@ -119,13 +154,13 @@ export function RequestCasePage({
   };
 
   const persistReq = (data, message = '✓ Dossier mis à jour', meta = {}) => {
-    const reqs = sub.connectionRequests.map(r => r.id === data.id ? data : r);
+    const reqs = sub.connectionRequests.map((r) => (r.id === data.id ? data : r));
     onUpdate({ ...sub, connectionRequests: reqs });
     logActivity(data, meta);
     showToast(message);
   };
 
-  const handleSaveCustomer = data => {
+  const handleSaveCustomer = (data) => {
     persistReq(data, '✓ Demande client enregistrée', {
       actionKey: 'customer_saved',
       actionLabel: 'Demande client enregistrée',
@@ -135,14 +170,21 @@ export function RequestCasePage({
   };
 
   const handleStartStudy = () => {
-    const updated = evaluateRequestCapacity(sub, normalizeRequest({
-      ...req,
-      assessment: {
-        ...getAssessment(req),
-        status: 'under_study',
-        takenInChargeAt: new Date().toISOString(),
-      },
-    }, sub.id), projects);
+    const updated = evaluateRequestCapacity(
+      sub,
+      normalizeRequest(
+        {
+          ...req,
+          assessment: {
+            ...getAssessment(req),
+            status: 'under_study',
+            takenInChargeAt: new Date().toISOString(),
+          },
+        },
+        sub.id,
+      ),
+      projects,
+    );
     persistReq(updated, '✓ Dossier pris en charge', {
       actionKey: 'study_started',
       actionLabel: 'Prise en charge étude',
@@ -158,7 +200,7 @@ export function RequestCasePage({
     });
   };
 
-  const handleSaveOffer = updated => {
+  const handleSaveOffer = (updated) => {
     persistReq(updated, '✓ Offre mise à jour', {
       actionKey: 'offer_updated',
       actionLabel: 'Offre mise à jour',
@@ -169,18 +211,21 @@ export function RequestCasePage({
 
   const handleSubUpdateWithActivity = (updatedSub, meta = {}) => {
     onUpdate(updatedSub);
-    const updatedReq = (updatedSub.connectionRequests || []).find(r => r.id === req.id) || req;
+    const updatedReq = (updatedSub.connectionRequests || []).find((r) => r.id === req.id) || req;
     logActivity(updatedReq, meta);
     if (meta.toast) showToast(meta.toast);
   };
 
   const primaryAction = getPrimaryAction(req);
   const assessment = getAssessment(req);
-  const finalStatuses = [assessment.final?.load?.status, assessment.final?.injection?.status].filter(Boolean);
+  const finalStatuses = [
+    assessment.final?.load?.status,
+    assessment.final?.injection?.status,
+  ].filter(Boolean);
   const conditionSummary = buildConditionSummary(
     req,
     projects,
-    finalStatuses.includes('LIMIT') || finalStatuses.includes('FULL_FLEX')
+    finalStatuses.includes('LIMIT') || finalStatuses.includes('FULL_FLEX'),
   );
 
   const handleAssessmentAction = () => {
@@ -195,10 +240,11 @@ export function RequestCasePage({
   };
 
   const primaryIsButton = primaryAction.key !== 'VIEW';
-  const noActionReason = lockReason('offer', req)
-    || lockReason('assessment', req)
-    || lockReason('customer', req)
-    || 'Aucune action requise pour ce dossier.';
+  const noActionReason =
+    lockReason('offer', req) ||
+    lockReason('assessment', req) ||
+    lockReason('customer', req) ||
+    'Aucune action requise pour ce dossier.';
 
   return (
     <div style={{ paddingBottom: 40 }} className="fade-in">
@@ -220,11 +266,13 @@ export function RequestCasePage({
         <CaseTimeline
           req={req}
           sub={sub}
-          onUpdate={updatedSub => handleSubUpdateWithActivity(updatedSub, {
-            actionKey: 'milestone_updated',
-            actionLabel: 'Jalon mis à jour',
-            summary: 'Calendrier du dossier mis à jour',
-          })}
+          onUpdate={(updatedSub) =>
+            handleSubUpdateWithActivity(updatedSub, {
+              actionKey: 'milestone_updated',
+              actionLabel: 'Jalon mis à jour',
+              summary: 'Calendrier du dossier mis à jour',
+            })
+          }
         />
       </div>
 
@@ -233,8 +281,25 @@ export function RequestCasePage({
         <DecisionBanner req={req} />
       </div>
 
-      <div style={{ padding: '12px 20px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 8, marginTop: 12 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+      <div
+        style={{
+          padding: '12px 20px',
+          background: 'var(--bg-raised)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          marginTop: 12,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            marginBottom: 8,
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '.05em',
+          }}
+        >
           Prochaine action
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -283,13 +348,14 @@ export function RequestCasePage({
         <CaseInternalNotes
           req={req}
           sub={sub}
-          onUpdate={updatedSub => handleSubUpdateWithActivity(updatedSub, {
-            actionKey: 'internal_notes_saved',
-            actionLabel: 'Notes internes enregistrées',
-            summary: 'Notes internes enregistrées',
-          })}
+          onUpdate={(updatedSub) =>
+            handleSubUpdateWithActivity(updatedSub, {
+              actionKey: 'internal_notes_saved',
+              actionLabel: 'Notes internes enregistrées',
+              summary: 'Notes internes enregistrées',
+            })
+          }
         />
-
       </div>
 
       {customerPanel && (
@@ -309,11 +375,7 @@ export function RequestCasePage({
       )}
 
       {offerPanel && (
-        <OfferStatusModal
-          req={req}
-          onSave={handleSaveOffer}
-          onClose={() => setOfferPanel(false)}
-        />
+        <OfferStatusModal req={req} onSave={handleSaveOffer} onClose={() => setOfferPanel(false)} />
       )}
     </div>
   );

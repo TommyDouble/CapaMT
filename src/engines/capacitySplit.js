@@ -50,12 +50,14 @@ export function makeCapacitySplit({
   const perm = isPending || isKo ? 0 : Math.max(0, Math.min(req, roundCapacity(permanent)));
   const flexValue = flexible === undefined ? req - perm : flexible;
   const flex = isPending || isKo ? 0 : Math.max(0, roundCapacity(flexValue));
-  const normalizedStatus = status || deriveStatus({ requested: req, permanent: perm, flexible: flex });
+  const normalizedStatus =
+    status || deriveStatus({ requested: req, permanent: perm, flexible: flex });
 
   return {
     requested: req,
     permanent: normalizedStatus === 'PENDING' || normalizedStatus === 'KO' ? 0 : perm,
-    flexible: normalizedStatus === 'PENDING' || normalizedStatus === 'KO' ? 0 : roundCapacity(req - perm),
+    flexible:
+      normalizedStatus === 'PENDING' || normalizedStatus === 'KO' ? 0 : roundCapacity(req - perm),
     status: normalizedStatus,
     reason,
     confidence,
@@ -80,7 +82,11 @@ export function pendingSplit(requested = 0, source = 'UPSTREAM', reason = 'Répo
   });
 }
 
-export function okSplit(requested = 0, source = 'UPSTREAM', reason = 'Aucune limitation identifiée') {
+export function okSplit(
+  requested = 0,
+  source = 'UPSTREAM',
+  reason = 'Aucune limitation identifiée',
+) {
   return makeCapacitySplit({
     requested,
     permanent: requested,
@@ -113,30 +119,31 @@ function unique(values = []) {
 
 export function combineSplits(splits = [], requested = 0, source = 'FINAL') {
   const req = Math.max(0, roundCapacity(requested));
-  const usable = (splits || []).filter(Boolean).map(split => ({
+  const usable = (splits || []).filter(Boolean).map((split) => ({
     ...split,
     requested: req,
   }));
 
-  if (!usable.length) return {
-    final: makeCapacitySplit({
-      requested: req,
-      status: 'PENDING',
-      source,
-      reason: 'Aucune réponse disponible',
-      confidence: 'LOW',
+  if (!usable.length)
+    return {
+      final: makeCapacitySplit({
+        requested: req,
+        status: 'PENDING',
+        source,
+        reason: 'Aucune réponse disponible',
+        confidence: 'LOW',
+        missingSources: ['UNKNOWN'],
+        nextActions: [ACTION_CODES.COMPLETER_DONNEES],
+      }),
+      limitingConstraint: 'UNKNOWN',
+      nextAction: ACTION_CODES.COMPLETER_DONNEES,
       missingSources: ['UNKNOWN'],
       nextActions: [ACTION_CODES.COMPLETER_DONNEES],
-    }),
-    limitingConstraint: 'UNKNOWN',
-    nextAction: ACTION_CODES.COMPLETER_DONNEES,
-    missingSources: ['UNKNOWN'],
-    nextActions: [ACTION_CODES.COMPLETER_DONNEES],
-  };
+    };
 
-  const pendingSplits = usable.filter(split => split.status === 'PENDING');
+  const pendingSplits = usable.filter((split) => split.status === 'PENDING');
   if (pendingSplits.length) {
-    const missingSources = unique(pendingSplits.map(split => split.source || 'UNKNOWN'));
+    const missingSources = unique(pendingSplits.map((split) => split.source || 'UNKNOWN'));
     const nextActions = unique(missingSources.map(actionForSource));
     return {
       final: makeCapacitySplit({
@@ -155,19 +162,22 @@ export function combineSplits(splits = [], requested = 0, source = 'FINAL') {
     };
   }
 
-  const ko = usable.find(split => split.status === 'KO');
-  if (ko) return {
-    final: koSplit(req, source, ko.reason || `Blocage ${ko.source}`),
-    limitingConstraint: ko.source || 'UNKNOWN',
-    nextAction: ACTION_CODES.TRAITER_BLOCAGE,
-    missingSources: [],
-    nextActions: [ACTION_CODES.TRAITER_BLOCAGE],
-  };
+  const ko = usable.find((split) => split.status === 'KO');
+  if (ko)
+    return {
+      final: koSplit(req, source, ko.reason || `Blocage ${ko.source}`),
+      limitingConstraint: ko.source || 'UNKNOWN',
+      nextAction: ACTION_CODES.TRAITER_BLOCAGE,
+      missingSources: [],
+      nextActions: [ACTION_CODES.TRAITER_BLOCAGE],
+    };
 
-  const minPermanent = Math.min(...usable.map(split => safeNum(split.permanent, 0)));
-  const lowestConfidence = usable.some(s => s.confidence === 'LOW')
+  const minPermanent = Math.min(...usable.map((split) => safeNum(split.permanent, 0)));
+  const lowestConfidence = usable.some((s) => s.confidence === 'LOW')
     ? 'LOW'
-    : usable.some(s => s.confidence === 'MEDIUM') ? 'MEDIUM' : 'HIGH';
+    : usable.some((s) => s.confidence === 'MEDIUM')
+      ? 'MEDIUM'
+      : 'HIGH';
 
   if (minPermanent >= req - EPS) {
     return {
@@ -186,7 +196,7 @@ export function combineSplits(splits = [], requested = 0, source = 'FINAL') {
   }
 
   const limiting = usable
-    .filter(split => Math.abs(safeNum(split.permanent, 0) - minPermanent) < EPS)
+    .filter((split) => Math.abs(safeNum(split.permanent, 0) - minPermanent) < EPS)
     .sort((a, b) => sourceRank(a.source) - sourceRank(b.source))[0];
 
   return {
@@ -194,9 +204,7 @@ export function combineSplits(splits = [], requested = 0, source = 'FINAL') {
       requested: req,
       permanent: minPermanent,
       source,
-      reason: limiting
-        ? `Contrainte limitante: ${limiting.source}`
-        : 'Réponse combinée',
+      reason: limiting ? `Contrainte limitante: ${limiting.source}` : 'Réponse combinée',
       confidence: lowestConfidence,
     }),
     limitingConstraint: limiting?.source || 'UNKNOWN',

@@ -23,12 +23,14 @@
  * Aucune dépendance React.
  */
 
-import { safeNum, safeDiv }       from '../utils/numbers.js';
+import { safeNum, safeDiv } from '../utils/numbers.js';
 import { YEARS, REF_YEAR, ALERT_ORDER, getFoisonnement } from '../constants/index.js';
 import { getCapacityAtYear, getCapacityNAtYear } from './capacity.js';
 import {
-  getEffectiveRigidReservation, getEffectivePilotableReservation,
-  getEffectiveInjRigide, getEffectiveInjPilot,
+  getEffectiveRigidReservation,
+  getEffectivePilotableReservation,
+  getEffectiveInjRigide,
+  getEffectiveInjPilot,
 } from './requests.js';
 import { computeCapacityImpact, isActiveCapacityImpact } from './capacityImpact.js';
 import { getCustomer } from './requestModel.js';
@@ -37,7 +39,7 @@ import { getCustomer } from './requestModel.js';
 
 /** Requêtes actives pour une SS et une année cible. */
 function _activeRequests(sub, year) {
-  return (sub.connectionRequests || []).filter(r => {
+  return (sub.connectionRequests || []).filter((r) => {
     const impact = computeCapacityImpact(r);
     if (!isActiveCapacityImpact(impact)) return false;
     const reqYear = getCustomer(r).requested?.year || 2026;
@@ -107,20 +109,30 @@ export function getWithdrawalBaseNet(sub, year, projects = []) {
   const m = sub.directionalModel;
   if (!m?.withdrawalView) return 0;
 
-  const v      = m.withdrawalView;
-  const refY   = safeNum(m.referenceYear, REF_YEAR);
+  const v = m.withdrawalView;
+  const refY = safeNum(m.referenceYear, REF_YEAR);
 
-  const loadBT = projectDirectionalComponent(v.maxHistoricLoadBT,      v.growthLoadMaxBT,      refY, year);
-  const loadMT = projectDirectionalComponent(v.maxHistoricLoadMT,      v.growthLoadMaxMT,      refY, year);
-  const injBT  = projectDirectionalComponent(v.minHistoricInjectionBT, v.growthMinInjectionBT, refY, year);
-  const injMT  = projectDirectionalComponent(v.minHistoricInjectionMT, v.growthMinInjectionMT, refY, year);
+  const loadBT = projectDirectionalComponent(v.maxHistoricLoadBT, v.growthLoadMaxBT, refY, year);
+  const loadMT = projectDirectionalComponent(v.maxHistoricLoadMT, v.growthLoadMaxMT, refY, year);
+  const injBT = projectDirectionalComponent(
+    v.minHistoricInjectionBT,
+    v.growthMinInjectionBT,
+    refY,
+    year,
+  );
+  const injMT = projectDirectionalComponent(
+    v.minHistoricInjectionMT,
+    v.growthMinInjectionMT,
+    refY,
+    year,
+  );
 
   // Load transfers grow at BT rate
   let loadTransfer = 0;
   const growthBT = safeNum(v.growthLoadMaxBT, 0);
-  (projects || []).forEach(proj => {
+  (projects || []).forEach((proj) => {
     if (proj.status === 'annulé') return;
-    (proj.effects || []).forEach(eff => {
+    (proj.effects || []).forEach((eff) => {
       if (eff.ssId === sub.id && eff.action === 'load_transfer' && proj.year <= year) {
         const delta = safeNum(eff.loadDelta, 0);
         loadTransfer += delta * Math.pow(1 + growthBT, year - proj.year);
@@ -133,14 +145,18 @@ export function getWithdrawalBaseNet(sub, year, projects = []) {
 
 /** Réservation ferme (rigide) en sens prélèvement, avec foisonnement. */
 export function getWithdrawalFirmReservation(sub, year, inclCond = false) {
-  return _activeRequests(sub, year, inclCond)
-    .reduce((s, r) => s + getEffectiveRigidReservation(r) * getFoisonnement(r, sub), 0);
+  return _activeRequests(sub, year, inclCond).reduce(
+    (s, r) => s + getEffectiveRigidReservation(r) * getFoisonnement(r, sub),
+    0,
+  );
 }
 
 /** Réservation flexible (pilotable) en sens prélèvement, avec foisonnement. */
 export function getWithdrawalFlexibleReservation(sub, year, inclCond = false) {
-  return _activeRequests(sub, year, inclCond)
-    .reduce((s, r) => s + getEffectivePilotableReservation(r) * getFoisonnement(r, sub), 0);
+  return _activeRequests(sub, year, inclCond).reduce(
+    (s, r) => s + getEffectivePilotableReservation(r) * getFoisonnement(r, sub),
+    0,
+  );
 }
 
 /**
@@ -148,8 +164,9 @@ export function getWithdrawalFlexibleReservation(sub, year, inclCond = false) {
  * = WithdrawalBaseNet + WithdrawalFirmReservation
  */
 export function getWithdrawalRigid(sub, year, inclCond = false, projects = []) {
-  return getWithdrawalBaseNet(sub, year, projects)
-       + getWithdrawalFirmReservation(sub, year, inclCond);
+  return (
+    getWithdrawalBaseNet(sub, year, projects) + getWithdrawalFirmReservation(sub, year, inclCond)
+  );
 }
 
 /**
@@ -157,8 +174,10 @@ export function getWithdrawalRigid(sub, year, inclCond = false, projects = []) {
  * = WithdrawalRigid + WithdrawalFlexibleReservation
  */
 export function getWithdrawalTotal(sub, year, inclCond = false, projects = []) {
-  return getWithdrawalRigid(sub, year, inclCond, projects)
-       + getWithdrawalFlexibleReservation(sub, year, inclCond);
+  return (
+    getWithdrawalRigid(sub, year, inclCond, projects) +
+    getWithdrawalFlexibleReservation(sub, year, inclCond)
+  );
 }
 
 // ── Vue Injection ──────────────────────────────────────────────────────────
@@ -172,20 +191,30 @@ export function getInjectionBaseNet(sub, year, projects = []) {
   const m = sub.directionalModel;
   if (!m?.injectionView) return 0; // Pas de contrainte injection
 
-  const v    = m.injectionView;
+  const v = m.injectionView;
   const refY = safeNum(m.referenceYear, REF_YEAR);
 
-  const maxInjBT  = projectDirectionalComponent(v.maxHistoricInjectionBT, v.growthMaxInjectionBT, refY, year);
-  const maxInjMT  = projectDirectionalComponent(v.maxHistoricInjectionMT, v.growthMaxInjectionMT, refY, year);
-  const minLoadBT = projectDirectionalComponent(v.minHistoricLoadBT,      v.growthMinLoadBT,      refY, year);
-  const minLoadMT = projectDirectionalComponent(v.minHistoricLoadMT,      v.growthMinLoadMT,      refY, year);
+  const maxInjBT = projectDirectionalComponent(
+    v.maxHistoricInjectionBT,
+    v.growthMaxInjectionBT,
+    refY,
+    year,
+  );
+  const maxInjMT = projectDirectionalComponent(
+    v.maxHistoricInjectionMT,
+    v.growthMaxInjectionMT,
+    refY,
+    year,
+  );
+  const minLoadBT = projectDirectionalComponent(v.minHistoricLoadBT, v.growthMinLoadBT, refY, year);
+  const minLoadMT = projectDirectionalComponent(v.minHistoricLoadMT, v.growthMinLoadMT, refY, year);
 
   // Load transfers : add to the load side (reduces injection dominance)
   const growthMinLoad = safeNum(v.growthMinLoadBT, 0);
   let loadTransfer = 0;
-  (projects || []).forEach(proj => {
+  (projects || []).forEach((proj) => {
     if (proj.status === 'annulé') return;
-    (proj.effects || []).forEach(eff => {
+    (proj.effects || []).forEach((eff) => {
       if (eff.ssId === sub.id && eff.action === 'load_transfer' && proj.year <= year) {
         const delta = safeNum(eff.loadDelta, 0);
         loadTransfer += delta * Math.pow(1 + growthMinLoad, year - proj.year);
@@ -198,14 +227,18 @@ export function getInjectionBaseNet(sub, year, projects = []) {
 
 /** Réservation ferme (rigide) en sens injection, avec foisonnement. */
 export function getInjectionFirmReservation(sub, year, inclCond = false) {
-  return _activeRequests(sub, year, inclCond)
-    .reduce((s, r) => s + getEffectiveInjRigide(r) * getFoisonnement(r, sub), 0);
+  return _activeRequests(sub, year, inclCond).reduce(
+    (s, r) => s + getEffectiveInjRigide(r) * getFoisonnement(r, sub),
+    0,
+  );
 }
 
 /** Réservation flexible (pilotable) en sens injection, avec foisonnement. */
 export function getInjectionFlexibleReservation(sub, year, inclCond = false) {
-  return _activeRequests(sub, year, inclCond)
-    .reduce((s, r) => s + getEffectiveInjPilot(r) * getFoisonnement(r, sub), 0);
+  return _activeRequests(sub, year, inclCond).reduce(
+    (s, r) => s + getEffectiveInjPilot(r) * getFoisonnement(r, sub),
+    0,
+  );
 }
 
 /**
@@ -214,8 +247,9 @@ export function getInjectionFlexibleReservation(sub, year, inclCond = false) {
  * Plus négatif = plus de contrainte injection.
  */
 export function getInjectionRigid(sub, year, inclCond = false, projects = []) {
-  return getInjectionBaseNet(sub, year, projects)
-       - getInjectionFirmReservation(sub, year, inclCond);
+  return (
+    getInjectionBaseNet(sub, year, projects) - getInjectionFirmReservation(sub, year, inclCond)
+  );
 }
 
 /**
@@ -223,22 +257,26 @@ export function getInjectionRigid(sub, year, inclCond = false, projects = []) {
  * = InjectionRigid − InjectionFlexibleReservation
  */
 export function getInjectionTotal(sub, year, inclCond = false, projects = []) {
-  return getInjectionRigid(sub, year, inclCond, projects)
-       - getInjectionFlexibleReservation(sub, year, inclCond);
+  return (
+    getInjectionRigid(sub, year, inclCond, projects) -
+    getInjectionFlexibleReservation(sub, year, inclCond)
+  );
 }
 
 // ── Résiduels ──────────────────────────────────────────────────────────────
 
 /** Résiduel rigide en sens prélèvement. Positif = marge disponible. */
 export function getResidualWithdrawalRigid(sub, year, projects = []) {
-  return getDirectCapacityN1AtYear(sub, year, projects)
-       - getWithdrawalRigid(sub, year, false, projects);
+  return (
+    getDirectCapacityN1AtYear(sub, year, projects) - getWithdrawalRigid(sub, year, false, projects)
+  );
 }
 
 /** Résiduel total en sens prélèvement. */
 export function getResidualWithdrawalTotal(sub, year, projects = []) {
-  return getDirectCapacityN1AtYear(sub, year, projects)
-       - getWithdrawalTotal(sub, year, false, projects);
+  return (
+    getDirectCapacityN1AtYear(sub, year, projects) - getWithdrawalTotal(sub, year, false, projects)
+  );
 }
 
 /**
@@ -248,14 +286,14 @@ export function getResidualWithdrawalTotal(sub, year, projects = []) {
  */
 export function getResidualInjectionRigid(sub, year, projects = []) {
   const injRigid = getInjectionRigid(sub, year, false, projects);
-  const capRev   = getReverseCapacityN1AtYear(sub, year, projects);
+  const capRev = getReverseCapacityN1AtYear(sub, year, projects);
   return injRigid < 0 ? capRev - Math.abs(injRigid) : capRev;
 }
 
 /** Résiduel total en sens injection. */
 export function getResidualInjectionTotal(sub, year, projects = []) {
   const injTotal = getInjectionTotal(sub, year, false, projects);
-  const capRev   = getReverseCapacityN1AtYear(sub, year, projects);
+  const capRev = getReverseCapacityN1AtYear(sub, year, projects);
   return injTotal < 0 ? capRev - Math.abs(injTotal) : capRev;
 }
 
@@ -300,64 +338,81 @@ export function getUtilizationInjectionTotal(sub, year, projects = []) {
  */
 export function getDirectionalAlertState(sub, year, inclCond = false, projects = []) {
   const capDirN1 = getDirectCapacityN1AtYear(sub, year, projects);
-  const capDirN  = getDirectCapacityNAtYear(sub, year, projects);
+  const capDirN = getDirectCapacityNAtYear(sub, year, projects);
   const capRevN1 = getReverseCapacityN1AtYear(sub, year, projects);
-  const capRevN  = getReverseCapacityNAtYear(sub, year, projects);
+  const capRevN = getReverseCapacityNAtYear(sub, year, projects);
 
-  const wRigid   = getWithdrawalRigid(sub, year, inclCond, projects);
-  const wTotal   = getWithdrawalTotal(sub, year, inclCond, projects);
+  const wRigid = getWithdrawalRigid(sub, year, inclCond, projects);
+  const wTotal = getWithdrawalTotal(sub, year, inclCond, projects);
   const injRigid = getInjectionRigid(sub, year, inclCond, projects);
   const injTotal = getInjectionTotal(sub, year, inclCond, projects);
 
   // Withdrawal utilizations
   const uWRvsN1 = safeDiv(wRigid, capDirN1, capDirN1 <= 0 ? 1 : 0);
   const uWTvsN1 = safeDiv(wTotal, capDirN1, capDirN1 <= 0 ? 1 : 0);
-  const uWRvsN  = capDirN ? safeDiv(wRigid, capDirN) : null;
+  const uWRvsN = capDirN ? safeDiv(wRigid, capDirN) : null;
 
   // Injection utilizations (only meaningful when injection dominates)
   const uIRvsN1 = injRigid < 0 ? safeDiv(Math.abs(injRigid), capRevN1, capRevN1 <= 0 ? 1 : 0) : 0;
   const uITvsN1 = injTotal < 0 ? safeDiv(Math.abs(injTotal), capRevN1, capRevN1 <= 0 ? 1 : 0) : 0;
-  const uIRvsN  = (injRigid < 0 && capRevN) ? safeDiv(Math.abs(injRigid), capRevN) : null;
+  const uIRvsN = injRigid < 0 && capRevN ? safeDiv(Math.abs(injRigid), capRevN) : null;
 
   // Withdrawal alert level
-  const wW_RigidN  = uWRvsN  !== null && uWRvsN  >= 1.0;
+  const wW_RigidN = uWRvsN !== null && uWRvsN >= 1.0;
   const wW_RigidN1 = uWRvsN1 >= 1.0;
   const wW_TotalN1 = uWTvsN1 >= 1.0;
   let worstWithdrawal = 'ok';
-  if      (wW_RigidN)                          worstWithdrawal = 'rigid_n';
-  else if (wW_RigidN1)                         worstWithdrawal = 'critical';
-  else if (wW_TotalN1)                         worstWithdrawal = 'pilot_n1';
-  else if (uWRvsN1 >= 0.85)                    worstWithdrawal = 'warning';
-  else if (uWRvsN1 >= 0.70)                    worstWithdrawal = 'caution';
+  if (wW_RigidN) worstWithdrawal = 'rigid_n';
+  else if (wW_RigidN1) worstWithdrawal = 'critical';
+  else if (wW_TotalN1) worstWithdrawal = 'pilot_n1';
+  else if (uWRvsN1 >= 0.85) worstWithdrawal = 'warning';
+  else if (uWRvsN1 >= 0.7) worstWithdrawal = 'caution';
 
   // Injection alert level
-  const wI_RigidN  = uIRvsN  !== null && uIRvsN  >= 1.0;
+  const wI_RigidN = uIRvsN !== null && uIRvsN >= 1.0;
   const wI_RigidN1 = uIRvsN1 >= 1.0;
   const wI_TotalN1 = uITvsN1 >= 1.0;
   let worstInjection = 'ok';
-  if      (wI_RigidN)                          worstInjection = 'rigid_n';
-  else if (wI_RigidN1)                         worstInjection = 'critical';
-  else if (wI_TotalN1)                         worstInjection = 'pilot_n1';
-  else if (uIRvsN1 >= 0.85)                    worstInjection = 'warning';
-  else if (uIRvsN1 >= 0.70)                    worstInjection = 'caution';
+  if (wI_RigidN) worstInjection = 'rigid_n';
+  else if (wI_RigidN1) worstInjection = 'critical';
+  else if (wI_TotalN1) worstInjection = 'pilot_n1';
+  else if (uIRvsN1 >= 0.85) worstInjection = 'warning';
+  else if (uIRvsN1 >= 0.7) worstInjection = 'caution';
 
   const worstLevel =
     ALERT_ORDER.indexOf(worstWithdrawal) >= ALERT_ORDER.indexOf(worstInjection)
-      ? worstWithdrawal : worstInjection;
+      ? worstWithdrawal
+      : worstInjection;
 
   return {
     // Utilizations
-    uWRvsN1, uWTvsN1, uWRvsN,
-    uIRvsN1, uITvsN1, uIRvsN,
+    uWRvsN1,
+    uWTvsN1,
+    uWRvsN,
+    uIRvsN1,
+    uITvsN1,
+    uIRvsN,
     // Flags
-    wW_RigidN1, wW_RigidN, wW_TotalN1,
-    wI_RigidN1, wI_RigidN, wI_TotalN1,
+    wW_RigidN1,
+    wW_RigidN,
+    wW_TotalN1,
+    wI_RigidN1,
+    wI_RigidN,
+    wI_TotalN1,
     // Worst levels by view and global
-    worstWithdrawal, worstInjection, worstLevel,
+    worstWithdrawal,
+    worstInjection,
+    worstLevel,
     // Raw values (MVA)
-    wRigid, wTotal, injRigid, injTotal,
+    wRigid,
+    wTotal,
+    injRigid,
+    injTotal,
     // Capacities
-    capDirN1, capDirN, capRevN1, capRevN,
+    capDirN1,
+    capDirN,
+    capRevN1,
+    capRevN,
     // Residuals
     residualWRigid: capDirN1 - wRigid,
     residualWTotal: capDirN1 - wTotal,
@@ -380,12 +435,12 @@ export function getWorstDirectionalAlertOverHorizon(sub, projects = []) {
 
 /** Première année de saturation en sens prélèvement (utilisation rigide ≥ 100%). */
 export function getFirstWithdrawalSaturationYear(sub, projects = []) {
-  return YEARS.find(y => getUtilizationWithdrawalRigid(sub, y, projects) >= 1.0) ?? null;
+  return YEARS.find((y) => getUtilizationWithdrawalRigid(sub, y, projects) >= 1.0) ?? null;
 }
 
 /** Première année de saturation en sens injection (utilisation rigide ≥ 100%). */
 export function getFirstInjectionSaturationYear(sub, projects = []) {
-  return YEARS.find(y => getUtilizationInjectionRigid(sub, y, projects) >= 1.0) ?? null;
+  return YEARS.find((y) => getUtilizationInjectionRigid(sub, y, projects) >= 1.0) ?? null;
 }
 
 /**
@@ -394,18 +449,18 @@ export function getFirstInjectionSaturationYear(sub, projects = []) {
  */
 export function isSubstationAtRiskDirectional(sub, projects = []) {
   const ACTIVE = new Set(['planifié', 'en_cours', 'validé']);
-  const risky = (projects || []).filter(p =>
-    ACTIVE.has(p.status) &&
-    (p.effects || []).some(e =>
-      e.ssId === sub.id && ['modify_tfo', 'create_ss'].includes(e.action)
-    )
+  const risky = (projects || []).filter(
+    (p) =>
+      ACTIVE.has(p.status) &&
+      (p.effects || []).some(
+        (e) => e.ssId === sub.id && ['modify_tfo', 'create_ss'].includes(e.action),
+      ),
   );
   if (!risky.length) return false;
-  const without    = (projects || []).filter(p => !risky.find(r => r.id === p.id));
-  const satWith    = getFirstWithdrawalSaturationYear(sub, projects);
+  const without = (projects || []).filter((p) => !risky.find((r) => r.id === p.id));
+  const satWith = getFirstWithdrawalSaturationYear(sub, projects);
   const satWithout = getFirstWithdrawalSaturationYear(sub, without);
-  return (!satWith && !!satWithout) ||
-         (satWith && satWithout && satWithout < satWith);
+  return (!satWith && !!satWithout) || (satWith && satWithout && satWithout < satWith);
 }
 
 // ── Snapshot pour buildAssumptionsSnapshot (directionnel) ──────────────────
@@ -418,38 +473,41 @@ export function buildDirectionalSnapshot(sub, year, activeView = 'withdrawal', p
   if (!sub) return null;
   const m = sub.directionalModel;
   const capDirN1 = getDirectCapacityN1AtYear(sub, year, projects);
-  const capDirN  = getDirectCapacityNAtYear(sub, year, projects);
+  const capDirN = getDirectCapacityNAtYear(sub, year, projects);
   const capRevN1 = getReverseCapacityN1AtYear(sub, year, projects);
-  const capRevN  = getReverseCapacityNAtYear(sub, year, projects);
+  const capRevN = getReverseCapacityNAtYear(sub, year, projects);
 
   const activeStatuses = new Set(['planifié', 'en_cours', 'validé']);
-  const projectsIncluded = (projects || []).filter(p =>
-    activeStatuses.has(p.status) && p.year <= year
+  const projectsIncluded = (projects || []).filter(
+    (p) => activeStatuses.has(p.status) && p.year <= year,
   );
-  const projectsExcluded = (projects || []).filter(p =>
-    p.status === 'annulé' || (activeStatuses.has(p.status) && p.year > year)
+  const projectsExcluded = (projects || []).filter(
+    (p) => p.status === 'annulé' || (activeStatuses.has(p.status) && p.year > year),
   );
 
-  const wv = m?.withdrawalView  || {};
-  const iv = m?.injectionView   || {};
+  const wv = m?.withdrawalView || {};
+  const iv = m?.injectionView || {};
 
   return {
     // Identity
-    subId:      sub.id,
+    subId: sub.id,
     referenceYear: safeNum(m?.referenceYear, REF_YEAR),
     targetYear: year,
     activeView,
     reverseCapacityRatio: safeNum(sub.transformerConfig?.reverseCapacityRatio, 1.0),
     // Direct/reverse capacities
-    capDirN1, capDirN, capRevN1, capRevN,
+    capDirN1,
+    capDirN,
+    capRevN1,
+    capRevN,
     // Withdrawal view parameters
     withdrawalView: {
-      maxHistoricLoadBT:      safeNum(wv.maxHistoricLoadBT, 0),
-      maxHistoricLoadMT:      safeNum(wv.maxHistoricLoadMT, 0),
+      maxHistoricLoadBT: safeNum(wv.maxHistoricLoadBT, 0),
+      maxHistoricLoadMT: safeNum(wv.maxHistoricLoadMT, 0),
       minHistoricInjectionBT: safeNum(wv.minHistoricInjectionBT, 0),
       minHistoricInjectionMT: safeNum(wv.minHistoricInjectionMT, 0),
-      growthLoadMaxBT:    safeNum(wv.growthLoadMaxBT, 0),
-      growthLoadMaxMT:    safeNum(wv.growthLoadMaxMT, 0),
+      growthLoadMaxBT: safeNum(wv.growthLoadMaxBT, 0),
+      growthLoadMaxMT: safeNum(wv.growthLoadMaxMT, 0),
       growthMinInjectionBT: safeNum(wv.growthMinInjectionBT, 0),
       growthMinInjectionMT: safeNum(wv.growthMinInjectionMT, 0),
     },
@@ -457,17 +515,25 @@ export function buildDirectionalSnapshot(sub, year, activeView = 'withdrawal', p
     injectionView: {
       maxHistoricInjectionBT: safeNum(iv.maxHistoricInjectionBT, 0),
       maxHistoricInjectionMT: safeNum(iv.maxHistoricInjectionMT, 0),
-      minHistoricLoadBT:      safeNum(iv.minHistoricLoadBT, 0),
-      minHistoricLoadMT:      safeNum(iv.minHistoricLoadMT, 0),
+      minHistoricLoadBT: safeNum(iv.minHistoricLoadBT, 0),
+      minHistoricLoadMT: safeNum(iv.minHistoricLoadMT, 0),
       growthMaxInjectionBT: safeNum(iv.growthMaxInjectionBT, 0),
       growthMaxInjectionMT: safeNum(iv.growthMaxInjectionMT, 0),
-      growthMinLoadBT:      safeNum(iv.growthMinLoadBT, 0),
-      growthMinLoadMT:      safeNum(iv.growthMinLoadMT, 0),
+      growthMinLoadBT: safeNum(iv.growthMinLoadBT, 0),
+      growthMinLoadMT: safeNum(iv.growthMinLoadMT, 0),
     },
     // Projects
-    projectsIncluded: projectsIncluded.map(p => ({ id: p.id, name: p.name, year: p.year, status: p.status })),
-    projectsExcluded: projectsExcluded.map(p => ({
-      id: p.id, name: p.name, year: p.year, status: p.status,
+    projectsIncluded: projectsIncluded.map((p) => ({
+      id: p.id,
+      name: p.name,
+      year: p.year,
+      status: p.status,
+    })),
+    projectsExcluded: projectsExcluded.map((p) => ({
+      id: p.id,
+      name: p.name,
+      year: p.year,
+      status: p.status,
       reason: p.status === 'annulé' ? 'annulé' : 'après horizon',
     })),
   };

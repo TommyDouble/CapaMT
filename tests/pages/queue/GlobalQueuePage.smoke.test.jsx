@@ -26,7 +26,7 @@ describe('cockpit file globale', () => {
           onNavigateToRequest={vi.fn()}
           onAdd={vi.fn()}
         />
-      </ProjectsCtx.Provider>
+      </ProjectsCtx.Provider>,
     );
 
     expect(screen.getByText('Client File')).toBeTruthy();

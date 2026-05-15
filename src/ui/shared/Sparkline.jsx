@@ -23,14 +23,16 @@ export function Sparkline({ values = [], width = 80, height = 28, color, thresho
   const stroke = color || autoColor;
 
   const pad = 2;
-  const w = width  - pad * 2;
+  const w = width - pad * 2;
   const h = height - pad * 2;
 
-  const pts = values.map((v, i) => {
-    const x = pad + (i / Math.max(values.length - 1, 1)) * w;
-    const y = pad + h - ((v - min) / range) * h;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
+  const pts = values
+    .map((v, i) => {
+      const x = pad + (i / Math.max(values.length - 1, 1)) * w;
+      const y = pad + h - ((v - min) / range) * h;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
 
   // Position of threshold line (e.g. y=0)
   let thresholdY = null;
@@ -39,9 +41,7 @@ export function Sparkline({ values = [], width = 80, height = 28, color, thresho
   }
 
   // First point where value crosses threshold
-  const crossIdx = threshold !== undefined
-    ? values.findIndex(v => v <= threshold)
-    : -1;
+  const crossIdx = threshold !== undefined ? values.findIndex((v) => v <= threshold) : -1;
 
   return (
     <svg
@@ -54,9 +54,14 @@ export function Sparkline({ values = [], width = 80, height = 28, color, thresho
       {/* Threshold line */}
       {thresholdY !== null && (
         <line
-          x1={pad} y1={thresholdY}
-          x2={width - pad} y2={thresholdY}
-          stroke="#ef4444" strokeWidth="1" strokeDasharray="3,2" opacity="0.5"
+          x1={pad}
+          y1={thresholdY}
+          x2={width - pad}
+          y2={thresholdY}
+          stroke="#ef4444"
+          strokeWidth="1"
+          strokeDasharray="3,2"
+          opacity="0.5"
         />
       )}
       {/* Sparkline */}

@@ -30,7 +30,7 @@ describe('page dossier canonique', () => {
         onUpdate={vi.fn()}
         onActivity={vi.fn()}
         onLogDelete={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText('Client Page')).toBeTruthy();

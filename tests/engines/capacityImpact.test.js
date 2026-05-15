@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { computeCapacityImpact } from '../../src/engines/capacityImpact.js';
 import { normalizeRequest } from '../../src/engines/requestModel.js';
-import { canonicalRequest, connectedRequest, studiedRequest } from '../helpers/canonicalFixtures.js';
+import {
+  canonicalRequest,
+  connectedRequest,
+  studiedRequest,
+} from '../helpers/canonicalFixtures.js';
 
 describe('capacity impact canonique', () => {
   it('compte une demande client prête comme réservation de file', () => {
@@ -13,7 +17,9 @@ describe('capacity impact canonique', () => {
   });
 
   it('compte la réponse technique finale tant que le dossier reste actif', () => {
-    const impact = computeCapacityImpact(studiedRequest({ load: 6, loadStatus: 'LIMIT', loadPermanent: 3, loadFlexible: 3 }));
+    const impact = computeCapacityImpact(
+      studiedRequest({ load: 6, loadStatus: 'LIMIT', loadPermanent: 3, loadFlexible: 3 }),
+    );
 
     expect(impact.status).toBe('STUDY_RESERVED');
     expect(impact.reservedLoadPermanent).toBe(3);
@@ -60,7 +66,9 @@ describe('capacity impact canonique', () => {
       load: 5,
     });
 
-    expect(computeCapacityImpact(req, new Date('2026-03-02T00:00:00Z')).status).toBe('CONNECTED_RESERVED');
+    expect(computeCapacityImpact(req, new Date('2026-03-02T00:00:00Z')).status).toBe(
+      'CONNECTED_RESERVED',
+    );
   });
 
   it('respecte une durée personnalisée par dossier', () => {
@@ -70,17 +78,25 @@ describe('capacity impact canonique', () => {
       load: 5,
     });
 
-    expect(computeCapacityImpact(req, new Date('2026-08-02T00:00:00Z')).status).toBe('CONNECTED_RESERVED');
+    expect(computeCapacityImpact(req, new Date('2026-08-02T00:00:00Z')).status).toBe(
+      'CONNECTED_RESERVED',
+    );
   });
 
   it('initialise la durée à six mois au passage raccordé', () => {
-    const req = normalizeRequest({
-      ...studiedRequest({ offerStatus: 'offer_connected', offerDates: { connectedAt: '2026-04-01' } }),
-      offer: {
-        status: 'offer_connected',
-        connectedAt: '2026-04-01',
+    const req = normalizeRequest(
+      {
+        ...studiedRequest({
+          offerStatus: 'offer_connected',
+          offerDates: { connectedAt: '2026-04-01' },
+        }),
+        offer: {
+          status: 'offer_connected',
+          connectedAt: '2026-04-01',
+        },
       },
-    }, 'ss-test');
+      'ss-test',
+    );
 
     expect(req.offer.connectedRetentionMonths).toBe(6);
   });

@@ -12,7 +12,7 @@ function renderPage() {
   return render(
     <ProjectsCtx.Provider value={INITIAL_NETWORK_PROJECTS}>
       <Overview substations={INITIAL_SUBSTATIONS} onNavigate={() => {}} />
-    </ProjectsCtx.Provider>
+    </ProjectsCtx.Provider>,
   );
 }
 
@@ -22,8 +22,9 @@ describe('Overview saturation matrix', () => {
 
     const matrix = screen.getByText('Matrice de saturation N-1').closest('.card');
     expect(matrix).toBeTruthy();
-    const firstPercentage = Array.from(matrix.querySelectorAll('tbody td span'))
-      .find(el => /%$/.test(el.textContent.trim()));
+    const firstPercentage = Array.from(matrix.querySelectorAll('tbody td span')).find((el) =>
+      /%$/.test(el.textContent.trim()),
+    );
     const firstCell = firstPercentage.closest('td');
     fireEvent.mouseEnter(firstCell);
 

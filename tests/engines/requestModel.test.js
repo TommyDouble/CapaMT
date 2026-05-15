@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { getCustomer, getOffer, getRequestedLoad, normalizeRequest } from '../../src/engines/requestModel.js';
+import {
+  getCustomer,
+  getOffer,
+  getRequestedLoad,
+  normalizeRequest,
+} from '../../src/engines/requestModel.js';
 import { canonicalRequest } from '../helpers/canonicalFixtures.js';
 
 describe('requestModel canonique', () => {

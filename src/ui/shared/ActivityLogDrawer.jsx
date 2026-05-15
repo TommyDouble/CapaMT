@@ -8,7 +8,10 @@ import { ActivityLogList } from './ActivityLogList.jsx';
 export function ActivityLogDrawer({ show, onClose, activityLog, onLogDelete, onNavigate }) {
   if (!show) return null;
 
-  const handleNavigate = (...args) => { onClose(); onNavigate?.(...args); };
+  const handleNavigate = (...args) => {
+    onClose();
+    onNavigate?.(...args);
+  };
 
   return (
     <>
@@ -23,9 +26,17 @@ export function ActivityLogDrawer({ show, onClose, activityLog, onLogDelete, onN
               {activityLog.length} saisie(s) · la suppression retire l'entrée du réseau
             </p>
           </div>
-          <button onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--text-muted)', fontSize: 20, lineHeight: 1 }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              fontSize: 20,
+              lineHeight: 1,
+            }}
+          >
             ×
           </button>
         </div>
@@ -33,7 +44,9 @@ export function ActivityLogDrawer({ show, onClose, activityLog, onLogDelete, onN
           {activityLog.length > 0 ? (
             <ActivityLogList log={activityLog} onDelete={onLogDelete} onNavigate={handleNavigate} />
           ) : (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+            <div
+              style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}
+            >
               Aucune saisie dans cette session.
             </div>
           )}

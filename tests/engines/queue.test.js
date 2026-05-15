@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { getGlobalQueueStats, getQueueAnalysis } from '../../src/engines/queue.js';
-import { canonicalRequest, canonicalSubstation, studiedRequest } from '../helpers/canonicalFixtures.js';
+import {
+  canonicalRequest,
+  canonicalSubstation,
+  studiedRequest,
+} from '../helpers/canonicalFixtures.js';
 
 describe('queue canonique par sous-station', () => {
   it('classe les demandes prêtes selon la date client', () => {
@@ -10,7 +14,7 @@ describe('queue canonique par sous-station', () => {
 
     const { queue } = getQueueAnalysis(sub);
 
-    expect(queue.map(item => item.req.id)).toEqual(['first', 'second']);
+    expect(queue.map((item) => item.req.id)).toEqual(['first', 'second']);
     expect(queue[0].position).toBe(1);
     expect(queue[1].withdrawalResidualBefore).toBeLessThan(queue[0].withdrawalResidualBefore);
   });

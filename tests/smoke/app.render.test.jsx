@@ -26,7 +26,10 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (root) { root.unmount(); root = null; }
+  if (root) {
+    root.unmount();
+    root = null;
+  }
   container.remove();
   container = null;
 });

@@ -10,7 +10,7 @@ import {
 export function SubstationSelector({ substations, value, onChange }) {
   return (
     <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-      {substations.map(sub => {
+      {substations.map((sub) => {
         const rate = getUtilizationWithdrawalRigid(sub, 2026);
         const level = getAlertLevel(rate);
         const c = ALERT_CONFIG[level];
@@ -24,11 +24,17 @@ export function SubstationSelector({ substations, value, onChange }) {
             <span style={{ background: c.color }} className="sub-option-dot" />
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-sm text-primary truncate">{sub.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{sub.code} · {sub.voltageLevel}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                {sub.code} · {sub.voltageLevel}
+              </div>
             </div>
             <div className="text-right flex-shrink-0">
-              <div className="mono text-xs font-bold" style={{ color: c.color }}>{pct(rate)}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{f1(getResidualWithdrawalRigid(sub, 2026))} MVA rés.</div>
+              <div className="mono text-xs font-bold" style={{ color: c.color }}>
+                {pct(rate)}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                {f1(getResidualWithdrawalRigid(sub, 2026))} MVA rés.
+              </div>
             </div>
           </button>
         );

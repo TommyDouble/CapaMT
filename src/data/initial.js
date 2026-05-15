@@ -37,12 +37,17 @@ function split(requested, permanent, source, reason, confidence = 'HIGH', validU
   const req = round(requested);
   const perm = Math.max(0, Math.min(req, round(permanent)));
   const flexible = round(req - perm);
-  const status = req <= 0 || perm >= req
-    ? 'OK'
-    : perm <= 0
-      ? 'FULL_FLEX'
-      : 'LIMIT';
-  return { requested: req, permanent: perm, flexible, status, reason, confidence, source, validUntil };
+  const status = req <= 0 || perm >= req ? 'OK' : perm <= 0 ? 'FULL_FLEX' : 'LIMIT';
+  return {
+    requested: req,
+    permanent: perm,
+    flexible,
+    status,
+    reason,
+    confidence,
+    source,
+    validUntil,
+  };
 }
 
 function pending(requested, source, reason) {
@@ -62,12 +67,24 @@ function cloneItems(items, prefix) {
 }
 
 function customer({
-  subId, name, reference, type, requestDate, readyForStudyAt,
-  load = 0, injection = 0, year, mes, city, siteLabel,
-  loadItems = [], injectionItems = [], statusOverride,
+  subId,
+  name,
+  reference,
+  type,
+  requestDate,
+  readyForStudyAt,
+  load = 0,
+  injection = 0,
+  year,
+  mes,
+  city,
+  siteLabel,
+  loadItems = [],
+  injectionItems = [],
+  statusOverride,
   coordinates,
 }) {
-  const complete = requestDate && (load + injection > 0) && mes;
+  const complete = requestDate && load + injection > 0 && mes;
   return {
     status: statusOverride || (complete ? 'ready_for_study' : 'incomplete'),
     source: 'manual',
@@ -166,11 +183,11 @@ function offer(status = 'not_applicable', dates = {}, comment = '') {
 
 const FOISON = {
   industriel: 0.85,
-  tertiaire: 0.80,
-  ENR: 0.60,
+  tertiaire: 0.8,
+  ENR: 0.6,
   stockage: 0.75,
-  résidentiel: 0.70,
-  autre: 0.80,
+  résidentiel: 0.7,
+  autre: 0.8,
 };
 
 const SUBSTATION_SPECS = [
@@ -184,9 +201,27 @@ const SUBSTATION_SPECS = [
     voltageUpstream: '63kV',
     transformerPower: 40,
     reverseCapacityRatio: 1.0,
-    coordinates: { lat: 50.6820, lng: 5.5710 },
-    withdrawal: { maxHistoricLoadBT: 18, maxHistoricLoadMT: 11, minHistoricInjectionBT: 1, minHistoricInjectionMT: 0, growthLoadMaxBT: 0.020, growthLoadMaxMT: 0.020, growthMinInjectionBT: 0, growthMinInjectionMT: 0 },
-    injection: { maxHistoricInjectionBT: 2.5, maxHistoricInjectionMT: 0.5, minHistoricLoadBT: 10, minHistoricLoadMT: 5, growthMaxInjectionBT: 0.050, growthMaxInjectionMT: 0.020, growthMinLoadBT: 0.010, growthMinLoadMT: 0.010 },
+    coordinates: { lat: 50.682, lng: 5.571 },
+    withdrawal: {
+      maxHistoricLoadBT: 18,
+      maxHistoricLoadMT: 11,
+      minHistoricInjectionBT: 1,
+      minHistoricInjectionMT: 0,
+      growthLoadMaxBT: 0.02,
+      growthLoadMaxMT: 0.02,
+      growthMinInjectionBT: 0,
+      growthMinInjectionMT: 0,
+    },
+    injection: {
+      maxHistoricInjectionBT: 2.5,
+      maxHistoricInjectionMT: 0.5,
+      minHistoricLoadBT: 10,
+      minHistoricLoadMT: 5,
+      growthMaxInjectionBT: 0.05,
+      growthMaxInjectionMT: 0.02,
+      growthMinLoadBT: 0.01,
+      growthMinLoadMT: 0.01,
+    },
     notes: 'Poste urbain dense. Jeu de donnees de demo: conditions locales et reseau disponibles.',
   },
   {
@@ -199,9 +234,27 @@ const SUBSTATION_SPECS = [
     voltageUpstream: '36kV',
     transformerPower: 25,
     reverseCapacityRatio: 0.9,
-    coordinates: { lat: 50.6050, lng: 5.5000 },
-    withdrawal: { maxHistoricLoadBT: 13.0, maxHistoricLoadMT: 9.0, minHistoricInjectionBT: 0.8, minHistoricInjectionMT: 0, growthLoadMaxBT: 0.012, growthLoadMaxMT: 0.012, growthMinInjectionBT: 0, growthMinInjectionMT: 0 },
-    injection: { maxHistoricInjectionBT: 0.5, maxHistoricInjectionMT: 0.0, minHistoricLoadBT: 5.0, minHistoricLoadMT: 3.5, growthMaxInjectionBT: 0.030, growthMaxInjectionMT: 0, growthMinLoadBT: 0.010, growthMinLoadMT: 0.010 },
+    coordinates: { lat: 50.605, lng: 5.5 },
+    withdrawal: {
+      maxHistoricLoadBT: 13.0,
+      maxHistoricLoadMT: 9.0,
+      minHistoricInjectionBT: 0.8,
+      minHistoricInjectionMT: 0,
+      growthLoadMaxBT: 0.012,
+      growthLoadMaxMT: 0.012,
+      growthMinInjectionBT: 0,
+      growthMinInjectionMT: 0,
+    },
+    injection: {
+      maxHistoricInjectionBT: 0.5,
+      maxHistoricInjectionMT: 0.0,
+      minHistoricLoadBT: 5.0,
+      minHistoricLoadMT: 3.5,
+      growthMaxInjectionBT: 0.03,
+      growthMaxInjectionMT: 0,
+      growthMinLoadBT: 0.01,
+      growthMinLoadMT: 0.01,
+    },
     notes: 'Poste industriel proche saturation. Projet T3 local et depart MT de demonstration.',
   },
   {
@@ -214,9 +267,27 @@ const SUBSTATION_SPECS = [
     voltageUpstream: '63kV',
     transformerPower: 40,
     reverseCapacityRatio: 0.85,
-    coordinates: { lat: 50.6650, lng: 5.6200 },
-    withdrawal: { maxHistoricLoadBT: 11.5, maxHistoricLoadMT: 7.0, minHistoricInjectionBT: 0.5, minHistoricInjectionMT: 0, growthLoadMaxBT: 0.026, growthLoadMaxMT: 0.020, growthMinInjectionBT: 0, growthMinInjectionMT: 0 },
-    injection: { maxHistoricInjectionBT: 3.5, maxHistoricInjectionMT: 0.5, minHistoricLoadBT: 4.5, minHistoricLoadMT: 2.0, growthMaxInjectionBT: 0.090, growthMaxInjectionMT: 0.040, growthMinLoadBT: 0.010, growthMinLoadMT: 0.010 },
+    coordinates: { lat: 50.665, lng: 5.62 },
+    withdrawal: {
+      maxHistoricLoadBT: 11.5,
+      maxHistoricLoadMT: 7.0,
+      minHistoricInjectionBT: 0.5,
+      minHistoricInjectionMT: 0,
+      growthLoadMaxBT: 0.026,
+      growthLoadMaxMT: 0.02,
+      growthMinInjectionBT: 0,
+      growthMinInjectionMT: 0,
+    },
+    injection: {
+      maxHistoricInjectionBT: 3.5,
+      maxHistoricInjectionMT: 0.5,
+      minHistoricLoadBT: 4.5,
+      minHistoricLoadMT: 2.0,
+      growthMaxInjectionBT: 0.09,
+      growthMaxInjectionMT: 0.04,
+      growthMinLoadBT: 0.01,
+      growthMinLoadMT: 0.01,
+    },
     notes: 'Poste injection ENR et stockage, utile pour tester les dossiers bidirectionnels.',
   },
   {
@@ -229,21 +300,42 @@ const SUBSTATION_SPECS = [
     voltageUpstream: '36kV',
     transformerPower: 30,
     reverseCapacityRatio: 1.0,
-    coordinates: { lat: 50.5900, lng: 5.8700 },
-    withdrawal: { maxHistoricLoadBT: 14.0, maxHistoricLoadMT: 10.0, minHistoricInjectionBT: 1.0, minHistoricInjectionMT: 0, growthLoadMaxBT: 0.018, growthLoadMaxMT: 0.018, growthMinInjectionBT: 0, growthMinInjectionMT: 0 },
-    injection: { maxHistoricInjectionBT: 1.0, maxHistoricInjectionMT: 0.0, minHistoricLoadBT: 7.0, minHistoricLoadMT: 4.0, growthMaxInjectionBT: 0.030, growthMaxInjectionMT: 0, growthMinLoadBT: 0.010, growthMinLoadMT: 0.010 },
+    coordinates: { lat: 50.59, lng: 5.87 },
+    withdrawal: {
+      maxHistoricLoadBT: 14.0,
+      maxHistoricLoadMT: 10.0,
+      minHistoricInjectionBT: 1.0,
+      minHistoricInjectionMT: 0,
+      growthLoadMaxBT: 0.018,
+      growthLoadMaxMT: 0.018,
+      growthMinInjectionBT: 0,
+      growthMinInjectionMT: 0,
+    },
+    injection: {
+      maxHistoricInjectionBT: 1.0,
+      maxHistoricInjectionMT: 0.0,
+      minHistoricLoadBT: 7.0,
+      minHistoricLoadMT: 4.0,
+      growthMaxInjectionBT: 0.03,
+      growthMaxInjectionMT: 0,
+      growthMinLoadBT: 0.01,
+      growthMinLoadMT: 0.01,
+    },
     notes: 'Poste mixte avec dossiers residentiels et clos dans le jeu de demonstration.',
   },
 ];
 
 const PROJECT_BY_SUB = Object.fromEntries(
-  SUBSTATION_SPECS.map(spec => [spec.id, {
-    local: `prj-${spec.short}-local`,
-    network: `prj-${spec.short}-network`,
-  }])
+  SUBSTATION_SPECS.map((spec) => [
+    spec.id,
+    {
+      local: `prj-${spec.short}-local`,
+      network: `prj-${spec.short}-network`,
+    },
+  ]),
 );
 
-export const INITIAL_NETWORK_PROJECTS = SUBSTATION_SPECS.flatMap(spec => [
+export const INITIAL_NETWORK_PROJECTS = SUBSTATION_SPECS.flatMap((spec) => [
   {
     id: PROJECT_BY_SUB[spec.id].local,
     name: `Renforcement local ${spec.name}`,
@@ -253,7 +345,17 @@ export const INITIAL_NETWORK_PROJECTS = SUBSTATION_SPECS.flatMap(spec => [
     cost: spec.id === 'ss-ser' ? 1800 : 1200,
     status: spec.id === 'ss-ln' ? 'validé' : 'en_cours',
     notes: `Projet conditionnant utilisable dans la couche Local / sous-station de ${spec.name}.`,
-    effects: [{ ssId: spec.id, action: 'modify_tfo', tfoChanges: { remove: [], add: [{ id: 'T3', power: spec.transformerPower, role: 'normal' }], modify: [] } }],
+    effects: [
+      {
+        ssId: spec.id,
+        action: 'modify_tfo',
+        tfoChanges: {
+          remove: [],
+          add: [{ id: 'T3', power: spec.transformerPower, role: 'normal' }],
+          modify: [],
+        },
+      },
+    ],
   },
   {
     id: PROJECT_BY_SUB[spec.id].network,
@@ -264,7 +366,9 @@ export const INITIAL_NETWORK_PROJECTS = SUBSTATION_SPECS.flatMap(spec => [
     cost: spec.id === 'ss-ln' ? 2400 : 1600,
     status: spec.id === 'ss-ser' ? 'validé' : 'planifié',
     notes: `Projet conditionnant utilisable dans la couche Réseau MT abstrait de ${spec.name}.`,
-    effects: [{ ssId: spec.id, action: 'modify_tfo', tfoChanges: { remove: [], add: [], modify: [] } }],
+    effects: [
+      { ssId: spec.id, action: 'modify_tfo', tfoChanges: { remove: [], add: [], modify: [] } },
+    ],
   },
 ]);
 
@@ -274,7 +378,8 @@ const TYPE_PROFILES = [
     label: 'Industrie Atlas',
     subId: 'ss-ln',
     city: 'Liege',
-    baseLat: 50.6750, baseLng: 5.5800,
+    baseLat: 50.675,
+    baseLng: 5.58,
     load: 6.0,
     injection: 0,
     loadItems: [
@@ -288,7 +393,8 @@ const TYPE_PROFILES = [
     label: 'Ecoquartier Vesdre',
     subId: 'ss-ver',
     city: 'Verviers',
-    baseLat: 50.5950, baseLng: 5.8500,
+    baseLat: 50.595,
+    baseLng: 5.85,
     load: 1.8,
     injection: 0,
     loadItems: [
@@ -302,7 +408,8 @@ const TYPE_PROFILES = [
     label: 'Campus Services',
     subId: 'ss-ser',
     city: 'Seraing',
-    baseLat: 50.6100, baseLng: 5.4900,
+    baseLat: 50.61,
+    baseLng: 5.49,
     load: 3.2,
     injection: 0,
     loadItems: [
@@ -316,7 +423,8 @@ const TYPE_PROFILES = [
     label: 'Parc solaire Horizon',
     subId: 'ss-her',
     city: 'Herstal',
-    baseLat: 50.6500, baseLng: 5.6350,
+    baseLat: 50.65,
+    baseLng: 5.635,
     load: 0,
     injection: 4.5,
     loadItems: [],
@@ -329,14 +437,19 @@ const TYPE_PROFILES = [
     label: 'BESS FlexNode',
     subId: 'ss-her',
     city: 'Herstal',
-    baseLat: 50.6700, baseLng: 5.6100,
+    baseLat: 50.67,
+    baseLng: 5.61,
     load: 2.8,
     injection: 2.8,
-    loadItems: [
-      { type: 'batteries', label: 'Charge batterie', powerMva: 2.8, flexible: true },
-    ],
+    loadItems: [{ type: 'batteries', label: 'Charge batterie', powerMva: 2.8, flexible: true }],
     injectionItems: [
-      { source: 'stockage', label: 'Décharge batterie', powerMva: 2.8, installedMva: 2.8, curtailable: true },
+      {
+        source: 'stockage',
+        label: 'Décharge batterie',
+        powerMva: 2.8,
+        installedMva: 2.8,
+        curtailable: true,
+      },
     ],
   },
   {
@@ -344,14 +457,19 @@ const TYPE_PROFILES = [
     label: 'Site mixte communal',
     subId: 'ss-ln',
     city: 'Liege',
-    baseLat: 50.6900, baseLng: 5.5600,
+    baseLat: 50.69,
+    baseLng: 5.56,
     load: 1.2,
     injection: 0.8,
-    loadItems: [
-      { type: 'autre', label: 'Ateliers techniques', powerMva: 1.2, flexible: false },
-    ],
+    loadItems: [{ type: 'autre', label: 'Ateliers techniques', powerMva: 1.2, flexible: false }],
     injectionItems: [
-      { source: 'cogen', label: 'Cogénération appoint', powerMva: 0.8, installedMva: 1.0, curtailable: false },
+      {
+        source: 'cogen',
+        label: 'Cogénération appoint',
+        powerMva: 0.8,
+        installedMva: 1.0,
+        curtailable: false,
+      },
     ],
   },
 ];
@@ -363,18 +481,110 @@ function siteCoordinates(baseLat, baseLng) {
 }
 
 export const DEMO_SITUATIONS = [
-  { key: 'incomplete', label: 'À compléter', code: 'INC', month: 4, requestYear: 2026, mesYear: 2028 },
-  { key: 'ready_study', label: 'Prête pour étude', code: 'PRE', month: 4, requestYear: 2026, mesYear: 2028 },
-  { key: 'study_capac', label: 'En étude - CAPAC', code: 'CAP', month: 3, requestYear: 2026, mesYear: 2028 },
-  { key: 'study_local', label: 'En étude - local à compléter', code: 'LOC', month: 3, requestYear: 2026, mesYear: 2028 },
-  { key: 'study_network', label: 'En étude - réseau MT à compléter', code: 'NET', month: 3, requestYear: 2026, mesYear: 2028 },
-  { key: 'studied_ok', label: 'Étudiée acceptable', code: 'OK', month: 2, requestYear: 2026, mesYear: 2028 },
-  { key: 'condition_local', label: 'Condition locale', code: 'CLO', month: 2, requestYear: 2026, mesYear: 2028 },
-  { key: 'condition_network', label: 'Condition réseau MT', code: 'CNE', month: 2, requestYear: 2026, mesYear: 2029 },
-  { key: 'offer_expired', label: 'Offre expirée', code: 'EXP', month: 9, requestYear: 2025, studyYear: 2025, studyMonth: 10, mesYear: 2027 },
-  { key: 'offer_accepted', label: 'Offre acceptée', code: 'ACC', month: 10, requestYear: 2025, studyYear: 2025, studyMonth: 11, mesYear: 2027 },
-  { key: 'connected', label: 'Raccordée', code: 'RAC', month: 10, requestYear: 2024, studyYear: 2025, studyMonth: 1, mesYear: 2026 },
-  { key: 'cancelled', label: 'Annulée / libérée', code: 'ANN', month: 7, requestYear: 2025, studyYear: 2025, studyMonth: 8, mesYear: 2027 },
+  {
+    key: 'incomplete',
+    label: 'À compléter',
+    code: 'INC',
+    month: 4,
+    requestYear: 2026,
+    mesYear: 2028,
+  },
+  {
+    key: 'ready_study',
+    label: 'Prête pour étude',
+    code: 'PRE',
+    month: 4,
+    requestYear: 2026,
+    mesYear: 2028,
+  },
+  {
+    key: 'study_capac',
+    label: 'En étude - CAPAC',
+    code: 'CAP',
+    month: 3,
+    requestYear: 2026,
+    mesYear: 2028,
+  },
+  {
+    key: 'study_local',
+    label: 'En étude - local à compléter',
+    code: 'LOC',
+    month: 3,
+    requestYear: 2026,
+    mesYear: 2028,
+  },
+  {
+    key: 'study_network',
+    label: 'En étude - réseau MT à compléter',
+    code: 'NET',
+    month: 3,
+    requestYear: 2026,
+    mesYear: 2028,
+  },
+  {
+    key: 'studied_ok',
+    label: 'Étudiée acceptable',
+    code: 'OK',
+    month: 2,
+    requestYear: 2026,
+    mesYear: 2028,
+  },
+  {
+    key: 'condition_local',
+    label: 'Condition locale',
+    code: 'CLO',
+    month: 2,
+    requestYear: 2026,
+    mesYear: 2028,
+  },
+  {
+    key: 'condition_network',
+    label: 'Condition réseau MT',
+    code: 'CNE',
+    month: 2,
+    requestYear: 2026,
+    mesYear: 2029,
+  },
+  {
+    key: 'offer_expired',
+    label: 'Offre expirée',
+    code: 'EXP',
+    month: 9,
+    requestYear: 2025,
+    studyYear: 2025,
+    studyMonth: 10,
+    mesYear: 2027,
+  },
+  {
+    key: 'offer_accepted',
+    label: 'Offre acceptée',
+    code: 'ACC',
+    month: 10,
+    requestYear: 2025,
+    studyYear: 2025,
+    studyMonth: 11,
+    mesYear: 2027,
+  },
+  {
+    key: 'connected',
+    label: 'Raccordée',
+    code: 'RAC',
+    month: 10,
+    requestYear: 2024,
+    studyYear: 2025,
+    studyMonth: 1,
+    mesYear: 2026,
+  },
+  {
+    key: 'cancelled',
+    label: 'Annulée / libérée',
+    code: 'ANN',
+    month: 7,
+    requestYear: 2025,
+    studyYear: 2025,
+    studyMonth: 8,
+    mesYear: 2027,
+  },
 ];
 
 function layerFor(requested, source, mode, options = {}) {
@@ -382,7 +592,7 @@ function layerFor(requested, source, mode, options = {}) {
   const reason = options.reason || `${source} ${mode}`;
   const ratio = options.ratio ?? 1;
   const confidence = options.confidence || (mode === 'limit' ? 'MEDIUM' : 'HIGH');
-  const splitForMode = amount => {
+  const splitForMode = (amount) => {
     if (mode === 'pending') return pending(amount, source, reason);
     return split(amount, amount * ratio, source, reason, confidence, options.validUntil);
   };
@@ -402,8 +612,12 @@ function finalFor(requested, mode, options = {}) {
 function readyAssessment(requested) {
   return assessment({
     upstream: layerFor(requested, 'UPSTREAM', 'pending', { reason: 'Réponse CAPAC à compléter' }),
-    substation: layerFor(requested, 'SUBSTATION', 'pending', { reason: 'Réponse Local / sous-station à compléter' }),
-    network: layerFor(requested, 'NETWORK', 'pending', { reason: 'Réponse Réseau MT abstrait à compléter' }),
+    substation: layerFor(requested, 'SUBSTATION', 'pending', {
+      reason: 'Réponse Local / sous-station à compléter',
+    }),
+    network: layerFor(requested, 'NETWORK', 'pending', {
+      reason: 'Réponse Réseau MT abstrait à compléter',
+    }),
     final: finalFor(requested, 'pending', { reason: 'Réponse finale à calculer' }),
   });
 }
@@ -438,9 +652,15 @@ function assessmentFor(profile, situation, typeIndex) {
       status: 'under_study',
       assignedTo: 'Cellule études MT',
       takenInChargeAt,
-      capac: { status: 'RECEIVED', sentAt: date(studyYear, studyMonth, day), receivedAt: date(studyYear, studyMonth, day + 6) },
+      capac: {
+        status: 'RECEIVED',
+        sentAt: date(studyYear, studyMonth, day),
+        receivedAt: date(studyYear, studyMonth, day + 6),
+      },
       upstream: layerFor(requested, 'UPSTREAM', 'ok', { reason: 'CAPAC reçu favorable' }),
-      substation: layerFor(requested, 'SUBSTATION', 'pending', { reason: 'Calcul local / sous-station à compléter' }),
+      substation: layerFor(requested, 'SUBSTATION', 'pending', {
+        reason: 'Calcul local / sous-station à compléter',
+      }),
       network: layerFor(requested, 'NETWORK', 'ok', { reason: 'Réseau MT non limitant' }),
       final: finalFor(requested, 'pending', { reason: 'Réponse manquante: SUBSTATION' }),
       nextAction: ACTION_CODES.COMPLETER_DONNEES_POSTE,
@@ -451,10 +671,18 @@ function assessmentFor(profile, situation, typeIndex) {
       status: 'under_study',
       assignedTo: 'Cellule études réseau',
       takenInChargeAt,
-      capac: { status: 'RECEIVED', sentAt: date(studyYear, studyMonth, day), receivedAt: date(studyYear, studyMonth, day + 5) },
+      capac: {
+        status: 'RECEIVED',
+        sentAt: date(studyYear, studyMonth, day),
+        receivedAt: date(studyYear, studyMonth, day + 5),
+      },
       upstream: layerFor(requested, 'UPSTREAM', 'ok', { reason: 'CAPAC reçu favorable' }),
-      substation: layerFor(requested, 'SUBSTATION', 'ok', { reason: 'Local / sous-station non limitant' }),
-      network: layerFor(requested, 'NETWORK', 'pending', { reason: 'Analyse réseau MT abstrait à compléter' }),
+      substation: layerFor(requested, 'SUBSTATION', 'ok', {
+        reason: 'Local / sous-station non limitant',
+      }),
+      network: layerFor(requested, 'NETWORK', 'pending', {
+        reason: 'Analyse réseau MT abstrait à compléter',
+      }),
       final: finalFor(requested, 'pending', { reason: 'Réponse manquante: NETWORK' }),
       nextAction: ACTION_CODES.FINALISER_ETUDE_RESEAU,
     });
@@ -465,7 +693,11 @@ function assessmentFor(profile, situation, typeIndex) {
       assignedTo: 'Cellule études MT',
       takenInChargeAt,
       assessedAt,
-      capac: { status: 'RECEIVED', sentAt: date(studyYear, studyMonth, day), receivedAt: date(studyYear, studyMonth, day + 5) },
+      capac: {
+        status: 'RECEIVED',
+        sentAt: date(studyYear, studyMonth, day),
+        receivedAt: date(studyYear, studyMonth, day + 5),
+      },
       upstream: layerFor(requested, 'UPSTREAM', 'ok', { reason: 'CAPAC favorable' }),
       substation: layerFor(requested, 'SUBSTATION', 'limit', {
         reason: 'Limitation locale N-1 avant projet poste',
@@ -487,9 +719,15 @@ function assessmentFor(profile, situation, typeIndex) {
       assignedTo: 'Cellule études réseau',
       takenInChargeAt,
       assessedAt,
-      capac: { status: 'RECEIVED', sentAt: date(studyYear, studyMonth, day), receivedAt: date(studyYear, studyMonth, day + 5) },
+      capac: {
+        status: 'RECEIVED',
+        sentAt: date(studyYear, studyMonth, day),
+        receivedAt: date(studyYear, studyMonth, day + 5),
+      },
       upstream: layerFor(requested, 'UPSTREAM', 'ok', { reason: 'CAPAC favorable' }),
-      substation: layerFor(requested, 'SUBSTATION', 'ok', { reason: 'Local / sous-station non limitant' }),
+      substation: layerFor(requested, 'SUBSTATION', 'ok', {
+        reason: 'Local / sous-station non limitant',
+      }),
       network: layerFor(requested, 'NETWORK', 'limit', {
         reason: 'Réseau MT limitant avant projet conditionnant',
         ratio: 0.64,
@@ -510,9 +748,15 @@ function assessmentFor(profile, situation, typeIndex) {
     assignedTo: 'Cellule études MT',
     takenInChargeAt,
     assessedAt,
-    capac: { status: 'RECEIVED', sentAt: date(studyYear, studyMonth, day), receivedAt: date(studyYear, studyMonth, day + 5) },
+    capac: {
+      status: 'RECEIVED',
+      sentAt: date(studyYear, studyMonth, day),
+      receivedAt: date(studyYear, studyMonth, day + 5),
+    },
     upstream: layerFor(requested, 'UPSTREAM', 'ok', { reason: 'CAPAC favorable' }),
-    substation: layerFor(requested, 'SUBSTATION', 'ok', { reason: 'Local / sous-station non limitant' }),
+    substation: layerFor(requested, 'SUBSTATION', 'ok', {
+      reason: 'Local / sous-station non limitant',
+    }),
     network: layerFor(requested, 'NETWORK', 'ok', { reason: 'Réseau MT non limitant' }),
     final: finalFor(requested, 'ok', { reason: 'Accord complet' }),
     confidence: 'HIGH',
@@ -524,22 +768,50 @@ function offerFor(situation, typeIndex) {
   const studyYear = situation.studyYear || situation.requestYear || 2026;
   const studyMonth = situation.studyMonth || situation.month;
   if (situation.key === 'condition_local') {
-    return offer('offer_formulated', { formulatedAt: date(studyYear, studyMonth, day + 10) }, 'Offre formulée sous condition locale / sous-station.');
+    return offer(
+      'offer_formulated',
+      { formulatedAt: date(studyYear, studyMonth, day + 10) },
+      'Offre formulée sous condition locale / sous-station.',
+    );
   }
   if (situation.key === 'condition_network') {
-    return offer('offer_formulated', { formulatedAt: date(studyYear, studyMonth, day + 10) }, 'Offre formulée sous condition réseau MT.');
+    return offer(
+      'offer_formulated',
+      { formulatedAt: date(studyYear, studyMonth, day + 10) },
+      'Offre formulée sous condition réseau MT.',
+    );
   }
   if (situation.key === 'offer_expired') {
-    return offer('offer_expired', { formulatedAt: date(2025, 10, day), expiredAt: date(2026, 1, day) }, 'Offre expirée à traiter explicitement.');
+    return offer(
+      'offer_expired',
+      { formulatedAt: date(2025, 10, day), expiredAt: date(2026, 1, day) },
+      'Offre expirée à traiter explicitement.',
+    );
   }
   if (situation.key === 'offer_accepted') {
-    return offer('offer_accepted', { formulatedAt: date(2026, 1, day), acceptedAt: date(2026, 2, day) }, 'Offre acceptée, raccordement à planifier.');
+    return offer(
+      'offer_accepted',
+      { formulatedAt: date(2026, 1, day), acceptedAt: date(2026, 2, day) },
+      'Offre acceptée, raccordement à planifier.',
+    );
   }
   if (situation.key === 'connected') {
-    return offer('offer_connected', { formulatedAt: date(2025, 1, day), acceptedAt: date(2025, 2, day), connectedAt: date(2026, 2, day) }, 'Raccordement réalisé.');
+    return offer(
+      'offer_connected',
+      {
+        formulatedAt: date(2025, 1, day),
+        acceptedAt: date(2025, 2, day),
+        connectedAt: date(2026, 2, day),
+      },
+      'Raccordement réalisé.',
+    );
   }
   if (situation.key === 'cancelled') {
-    return offer('offer_cancelled', { formulatedAt: date(2025, 6, day), cancelledAt: date(2025, 9, day) }, 'Projet abandonné par le client.');
+    return offer(
+      'offer_cancelled',
+      { formulatedAt: date(2025, 6, day), cancelledAt: date(2025, 9, day) },
+      'Projet abandonné par le client.',
+    );
   }
   return offer();
 }
@@ -548,16 +820,14 @@ function demoRequest(profile, situation, typeIndex, situationIndex) {
   const day = 3 + typeIndex * 3;
   const requestYear = situation.requestYear || 2026;
   const requestMonth = situation.month;
-  const requestDate = situation.key === 'incomplete'
-    ? ''
-    : date(requestYear, requestMonth, day);
-  const readyForStudyAt = situation.key === 'incomplete'
-    ? ''
-    : date(requestYear, requestMonth, day + 2);
+  const requestDate = situation.key === 'incomplete' ? '' : date(requestYear, requestMonth, day);
+  const readyForStudyAt =
+    situation.key === 'incomplete' ? '' : date(requestYear, requestMonth, day + 2);
   const reference = `DEMO-${situation.code}-${String(typeIndex + 1).padStart(2, '0')}`;
-  const mes = situation.key === 'incomplete'
-    ? ''
-    : date(situation.mesYear || (2027 + (situationIndex % 5)), 9, 1);
+  const mes =
+    situation.key === 'incomplete'
+      ? ''
+      : date(situation.mesYear || 2027 + (situationIndex % 5), 9, 1);
   const cust = customer({
     subId: profile.subId,
     name: `${profile.label} - ${situation.label}`,
@@ -567,7 +837,7 @@ function demoRequest(profile, situation, typeIndex, situationIndex) {
     readyForStudyAt,
     load: profile.load,
     injection: profile.injection,
-    year: situation.mesYear || (2027 + (situationIndex % 5)),
+    year: situation.mesYear || 2027 + (situationIndex % 5),
     mes,
     city: profile.city,
     loadItems: profile.loadItems,
@@ -593,9 +863,9 @@ function demoRequest(profile, situation, typeIndex, situationIndex) {
 
 function requestsForSubstation(subId) {
   return DEMO_SITUATIONS.flatMap((situation, situationIndex) =>
-    TYPE_PROFILES
-      .filter(profile => profile.subId === subId)
-      .map((profile, typeIndex) => demoRequest(profile, situation, TYPE_PROFILES.indexOf(profile), situationIndex))
+    TYPE_PROFILES.filter((profile) => profile.subId === subId).map((profile) =>
+      demoRequest(profile, situation, TYPE_PROFILES.indexOf(profile), situationIndex),
+    ),
   );
 }
 
@@ -609,9 +879,12 @@ function substationFromSpec(spec) {
     voltageUpstream: spec.voltageUpstream,
     status: 'actif',
     transformerConfig: {
-      transformers: [{ id: 'T1', power: spec.transformerPower, role: 'normal' }, { id: 'T2', power: spec.transformerPower, role: 'normal' }],
-      coeffN: 0.90,
-      coeffN1: 1.00,
+      transformers: [
+        { id: 'T1', power: spec.transformerPower, role: 'normal' },
+        { id: 'T2', power: spec.transformerPower, role: 'normal' },
+      ],
+      coeffN: 0.9,
+      coeffN1: 1.0,
       mtBackup: { enabled: false, capacity: 0 },
       reverseCapacityRatio: spec.reverseCapacityRatio,
     },

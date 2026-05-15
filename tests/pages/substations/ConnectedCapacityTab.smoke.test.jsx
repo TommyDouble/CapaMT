@@ -16,7 +16,12 @@ describe('onglet Raccordés', () => {
   it('affiche les dossiers maintenus et expirés', () => {
     const sub = canonicalSubstation({
       connectionRequests: [
-        connectedRequest({ id: 'kept', name: 'Client Maintenu', offerDates: { connectedAt: '2026-04-01' }, load: 5 }),
+        connectedRequest({
+          id: 'kept',
+          name: 'Client Maintenu',
+          offerDates: { connectedAt: '2026-04-01' },
+          load: 5,
+        }),
         connectedRequest({
           id: 'ended',
           name: 'Client Expiré',
@@ -40,12 +45,18 @@ describe('onglet Raccordés', () => {
     const onUpdate = vi.fn();
     const sub = canonicalSubstation({
       connectionRequests: [
-        connectedRequest({ id: 'kept', name: 'Client Maintenu', offerDates: { connectedAt: '2026-04-01' } }),
+        connectedRequest({
+          id: 'kept',
+          name: 'Client Maintenu',
+          offerDates: { connectedAt: '2026-04-01' },
+        }),
       ],
     });
 
     render(<ConnectedCapacityTab sub={sub} onUpdate={onUpdate} />);
-    fireEvent.change(screen.getByLabelText('Durée maintien Client Maintenu'), { target: { value: '9' } });
+    fireEvent.change(screen.getByLabelText('Durée maintien Client Maintenu'), {
+      target: { value: '9' },
+    });
 
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(onUpdate.mock.calls[0][0].connectionRequests[0].offer.connectedRetentionMonths).toBe(9);
@@ -56,7 +67,11 @@ describe('onglet Raccordés', () => {
     const onUpdate = vi.fn();
     const sub = canonicalSubstation({
       connectionRequests: [
-        connectedRequest({ id: 'kept', name: 'Client Maintenu', offerDates: { connectedAt: '2026-04-01' } }),
+        connectedRequest({
+          id: 'kept',
+          name: 'Client Maintenu',
+          offerDates: { connectedAt: '2026-04-01' },
+        }),
       ],
     });
 
@@ -65,7 +80,9 @@ describe('onglet Raccordés', () => {
 
     expect(onUpdate).toHaveBeenCalledTimes(1);
     const releasedSub = onUpdate.mock.calls[0][0];
-    expect(releasedSub.connectionRequests[0].offer.connectedReleasedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(releasedSub.connectionRequests[0].offer.connectedReleasedAt).toMatch(
+      /^\d{4}-\d{2}-\d{2}$/,
+    );
 
     rerender(<ConnectedCapacityTab sub={releasedSub} onUpdate={onUpdate} />);
     expect(screen.getByText('Libéré manuellement')).toBeTruthy();

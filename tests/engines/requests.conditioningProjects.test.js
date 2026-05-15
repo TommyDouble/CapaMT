@@ -3,8 +3,8 @@ import { getConditioningProjects } from '../../src/engines/requests.js';
 
 const mockProjects = [
   { id: 'proj-001', name: 'Renforcement A', status: 'planifié', year: 2027 },
-  { id: 'proj-002', name: 'Création B',     status: 'validé',   year: 2028 },
-  { id: 'proj-003', name: 'Extension C',    status: 'annulé',   year: 2026 },
+  { id: 'proj-002', name: 'Création B', status: 'validé', year: 2028 },
+  { id: 'proj-003', name: 'Extension C', status: 'annulé', year: 2026 },
 ];
 
 describe('getConditioningProjects', () => {
@@ -22,8 +22,8 @@ describe('getConditioningProjects', () => {
     const req = { id: 'req-1', conditionedOnProjectIds: ['proj-001', 'proj-003'] };
     const result = getConditioningProjects(req, mockProjects);
     expect(result).toHaveLength(2);
-    expect(result.map(p => p.id)).toContain('proj-001');
-    expect(result.map(p => p.id)).toContain('proj-003');
+    expect(result.map((p) => p.id)).toContain('proj-001');
+    expect(result.map((p) => p.id)).toContain('proj-003');
   });
 
   it('retourne les projets conditionnants encodés au niveau local et réseau', () => {
@@ -35,7 +35,7 @@ describe('getConditioningProjects', () => {
       },
     };
     const result = getConditioningProjects(req, mockProjects);
-    expect(result.map(p => p.id)).toEqual(['proj-001', 'proj-002']);
+    expect(result.map((p) => p.id)).toEqual(['proj-001', 'proj-002']);
   });
 
   it('ignore les ids inexistants', () => {

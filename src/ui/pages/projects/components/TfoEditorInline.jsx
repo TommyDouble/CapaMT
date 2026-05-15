@@ -22,25 +22,45 @@ export function TfoEditorInline({ tfos, onChange }) {
         <div key={i} className="tfo-editor-row">
           <div style={{ flex: '0 0 70px' }}>
             <label className="block text-xs text-muted mb-0.5">ID</label>
-            <input value={t.id} onChange={e => setField(i, 'id', e.target.value)}
-              className="input-field text-xs mono" placeholder="T1" />
+            <input
+              value={t.id}
+              onChange={(e) => setField(i, 'id', e.target.value)}
+              className="input-field text-xs mono"
+              placeholder="T1"
+            />
           </div>
           <div style={{ flex: '0 0 90px' }}>
             <label className="block text-xs text-muted mb-0.5">Puissance (MVA)</label>
-            <input type="number" step="0.5" min="0" value={t.power}
-              onChange={e => setField(i, 'power', e.target.value)}
-              className="input-field text-xs mono" placeholder="40" />
+            <input
+              type="number"
+              step="0.5"
+              min="0"
+              value={t.power}
+              onChange={(e) => setField(i, 'power', e.target.value)}
+              className="input-field text-xs mono"
+              placeholder="40"
+            />
           </div>
           <div style={{ flex: 1 }}>
             <label className="block text-xs text-muted mb-0.5">Rôle</label>
-            <select value={t.role} onChange={e => setField(i, 'role', e.target.value)} className="input-field text-xs">
+            <select
+              value={t.role}
+              onChange={(e) => setField(i, 'role', e.target.value)}
+              className="input-field text-xs"
+            >
               <option value="normal">Exploitation normale</option>
               <option value="secours">Secours uniquement</option>
             </select>
           </div>
           {tfos.length > 1 && (
-            <button type="button" onClick={() => removeRow(i)}
-              className="tfo-remove-btn" title="Supprimer ce transformateur">✕</button>
+            <button
+              type="button"
+              onClick={() => removeRow(i)}
+              className="tfo-remove-btn"
+              title="Supprimer ce transformateur"
+            >
+              ✕
+            </button>
           )}
         </div>
       ))}

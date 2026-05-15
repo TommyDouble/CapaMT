@@ -27,10 +27,26 @@ export function useKeyboardShortcuts({ onOpenSaisie, onNav }) {
         return;
       }
 
-      if (ctrl && e.key === '1') { e.preventDefault(); onNav('overview'); return; }
-      if (ctrl && e.key === '2') { e.preventDefault(); onNav('list'); return; }
-      if (ctrl && e.key === '3') { e.preventDefault(); onNav('file_attente'); return; }
-      if (ctrl && e.key === '4') { e.preventDefault(); onNav('investissements'); return; }
+      if (ctrl && e.key === '1') {
+        e.preventDefault();
+        onNav('overview');
+        return;
+      }
+      if (ctrl && e.key === '2') {
+        e.preventDefault();
+        onNav('list');
+        return;
+      }
+      if (ctrl && e.key === '3') {
+        e.preventDefault();
+        onNav('file_attente');
+        return;
+      }
+      if (ctrl && e.key === '4') {
+        e.preventDefault();
+        onNav('investissements');
+        return;
+      }
     };
 
     document.addEventListener('keydown', handler);

@@ -25,7 +25,7 @@ import {
 import { compareQueueRequests, getReadyForStudyDate } from './queueOrdering.js';
 
 export function filterSecuredProjects(projects = []) {
-  return (projects || []).filter(p => p.status === 'validé' || p.status === 'en_cours');
+  return (projects || []).filter((p) => p.status === 'validé' || p.status === 'en_cours');
 }
 
 function requestYear(req) {
@@ -57,7 +57,7 @@ function classifyOtherRequests(sub, req, year) {
   const counted = [];
   const excluded = [];
 
-  (sub.connectionRequests || []).forEach(other => {
+  (sub.connectionRequests || []).forEach((other) => {
     if (other.id === req.id) return;
     const impact = computeCapacityImpact(other);
     const reqYear = requestYear(other);
@@ -104,19 +104,40 @@ export function computeSubstationSplit(sub, req, projects = [], scenarioProfile 
   const permanentLoad = Math.max(0, Math.min(requestedLoad, maxClientLoad));
 
   const capInjection = getReverseCapacityN1AtYear(sub, year, securedProjects);
-  const baseInjectionAfterReservations = getInjectionBaseNet(sub, year, securedProjects) - committedInjection;
-  const residualInjection = baseInjectionAfterReservations < 0
-    ? capInjection - Math.abs(baseInjectionAfterReservations)
-    : capInjection;
-  const permanentInjection = Math.max(0, Math.min(requestedInjection, residualInjection / Math.max(foison, 0.0001)));
+  const baseInjectionAfterReservations =
+    getInjectionBaseNet(sub, year, securedProjects) - committedInjection;
+  const residualInjection =
+    baseInjectionAfterReservations < 0
+      ? capInjection - Math.abs(baseInjectionAfterReservations)
+      : capInjection;
+  const permanentInjection = Math.max(
+    0,
+    Math.min(requestedInjection, residualInjection / Math.max(foison, 0.0001)),
+  );
 
-  const projectAffectsSub = project => (project.effects || []).some(effect => effect.ssId === sub?.id || effect.newSS?.id === sub?.id);
+  const projectAffectsSub = (project) =>
+    (project.effects || []).some(
+      (effect) => effect.ssId === sub?.id || effect.newSS?.id === sub?.id,
+    );
   const countedProjects = (projects || [])
-    .filter(project => filterSecuredProjects([project]).length && safeNum(project.year, 9999) <= year && projectAffectsSub(project))
-    .map(project => ({ id: project.id, name: project.name || project.label || project.id, status: project.status, year: project.year, reason: 'secured_project' }));
+    .filter(
+      (project) =>
+        filterSecuredProjects([project]).length &&
+        safeNum(project.year, 9999) <= year &&
+        projectAffectsSub(project),
+    )
+    .map((project) => ({
+      id: project.id,
+      name: project.name || project.label || project.id,
+      status: project.status,
+      year: project.year,
+      reason: 'secured_project',
+    }));
   const excludedProjects = (projects || [])
-    .filter(project => !countedProjects.some(p => p.id === project.id) && projectAffectsSub(project))
-    .map(project => ({
+    .filter(
+      (project) => !countedProjects.some((p) => p.id === project.id) && projectAffectsSub(project),
+    )
+    .map((project) => ({
       id: project.id,
       name: project.name || project.label || project.id,
       status: project.status,
@@ -125,20 +146,26 @@ export function computeSubstationSplit(sub, req, projects = [], scenarioProfile 
     }));
 
   return {
-    load: requestedLoad > 0 ? makeCapacitySplit({
-      requested: requestedLoad,
-      permanent: permanentLoad,
-      source: 'SUBSTATION',
-      reason: `Marge poste N-1 ${year}: ${residualLoad.toFixed(1)} MVA avant demande · foisonnement ${foison.toFixed(2)} · plafond client ${Math.max(0, maxClientLoad).toFixed(1)} MVA`,
-      confidence: scenarioProfile === 'stress' ? 'MEDIUM' : 'HIGH',
-    }) : undefined,
-    injection: requestedInjection > 0 ? makeCapacitySplit({
-      requested: requestedInjection,
-      permanent: permanentInjection,
-      source: 'SUBSTATION',
-      reason: `Marge injection N-1 ${year}: ${residualInjection.toFixed(1)} MVA avant demande`,
-      confidence: scenarioProfile === 'stress' ? 'MEDIUM' : 'HIGH',
-    }) : undefined,
+    load:
+      requestedLoad > 0
+        ? makeCapacitySplit({
+            requested: requestedLoad,
+            permanent: permanentLoad,
+            source: 'SUBSTATION',
+            reason: `Marge poste N-1 ${year}: ${residualLoad.toFixed(1)} MVA avant demande · foisonnement ${foison.toFixed(2)} · plafond client ${Math.max(0, maxClientLoad).toFixed(1)} MVA`,
+            confidence: scenarioProfile === 'stress' ? 'MEDIUM' : 'HIGH',
+          })
+        : undefined,
+    injection:
+      requestedInjection > 0
+        ? makeCapacitySplit({
+            requested: requestedInjection,
+            permanent: permanentInjection,
+            source: 'SUBSTATION',
+            reason: `Marge injection N-1 ${year}: ${residualInjection.toFixed(1)} MVA avant demande`,
+            confidence: scenarioProfile === 'stress' ? 'MEDIUM' : 'HIGH',
+          })
+        : undefined,
     diagnostics: {
       year,
       capLoad,
@@ -152,7 +179,7 @@ export function computeSubstationSplit(sub, req, projects = [], scenarioProfile 
       committedLoad,
       committedInjection,
       foison,
-      securedProjectIds: securedProjects.map(p => p.id),
+      securedProjectIds: securedProjects.map((p) => p.id),
       countedRequests: requestSelection.counted,
       excludedRequests: requestSelection.excluded,
       countedProjects,
@@ -169,7 +196,10 @@ function layerSplit(assessment, source, direction, requested) {
     SUBSTATION: 'Local / sous-station',
     NETWORK: 'Réseau MT abstrait',
   };
-  return assessment[key]?.[direction] || pendingSplit(requested, source, `${labels[source] || source} à compléter`);
+  return (
+    assessment[key]?.[direction] ||
+    pendingSplit(requested, source, `${labels[source] || source} à compléter`)
+  );
 }
 
 function unique(values = []) {
@@ -177,7 +207,7 @@ function unique(values = []) {
 }
 
 function firstQualifiedConstraint(...constraints) {
-  return constraints.find(constraint => constraint && constraint !== 'UNKNOWN') || 'UNKNOWN';
+  return constraints.find((constraint) => constraint && constraint !== 'UNKNOWN') || 'UNKNOWN';
 }
 
 export function evaluateRequestCapacity(sub, req, projects = []) {
@@ -188,24 +218,38 @@ export function evaluateRequestCapacity(sub, req, projects = []) {
   const loadRequested = getRequestedLoad(canonical);
   const injectionRequested = getRequestedInjection(canonical);
 
-  const loadCombination = loadRequested > 0 ? combineSplits([
-    layerSplit(assessment, 'UPSTREAM', 'load', loadRequested),
-    layerSplit(assessment, 'SUBSTATION', 'load', loadRequested),
-    layerSplit(assessment, 'NETWORK', 'load', loadRequested),
-  ], loadRequested, 'FINAL') : null;
+  const loadCombination =
+    loadRequested > 0
+      ? combineSplits(
+          [
+            layerSplit(assessment, 'UPSTREAM', 'load', loadRequested),
+            layerSplit(assessment, 'SUBSTATION', 'load', loadRequested),
+            layerSplit(assessment, 'NETWORK', 'load', loadRequested),
+          ],
+          loadRequested,
+          'FINAL',
+        )
+      : null;
 
-  const injectionCombination = injectionRequested > 0 ? combineSplits([
-    layerSplit(assessment, 'UPSTREAM', 'injection', injectionRequested),
-    layerSplit(assessment, 'SUBSTATION', 'injection', injectionRequested),
-    layerSplit(assessment, 'NETWORK', 'injection', injectionRequested),
-  ], injectionRequested, 'FINAL') : null;
+  const injectionCombination =
+    injectionRequested > 0
+      ? combineSplits(
+          [
+            layerSplit(assessment, 'UPSTREAM', 'injection', injectionRequested),
+            layerSplit(assessment, 'SUBSTATION', 'injection', injectionRequested),
+            layerSplit(assessment, 'NETWORK', 'injection', injectionRequested),
+          ],
+          injectionRequested,
+          'FINAL',
+        )
+      : null;
 
   const final = {
     load: loadCombination?.final,
     injection: injectionCombination?.final,
     limitingConstraint: firstQualifiedConstraint(
       loadCombination?.limitingConstraint,
-      injectionCombination?.limitingConstraint
+      injectionCombination?.limitingConstraint,
     ),
   };
   const nextActions = unique([
@@ -216,7 +260,8 @@ export function evaluateRequestCapacity(sub, req, projects = []) {
     ...(loadCombination?.missingSources || []),
     ...(injectionCombination?.missingSources || []),
   ]);
-  const nextAction = nextActions[0] || loadCombination?.nextAction || injectionCombination?.nextAction || null;
+  const nextAction =
+    nextActions[0] || loadCombination?.nextAction || injectionCombination?.nextAction || null;
   const evaluated = {
     ...canonical,
     assessment: {

@@ -5,14 +5,20 @@ import {
   isSubstationAtRiskDirectional,
 } from './directionalSubstation.js';
 
-export const getAlertLevel = rate =>
-  rate >= 1.00 ? 'critical' : rate >= 0.85 ? 'warning' : rate >= 0.70 ? 'caution' : 'ok';
+export const getAlertLevel = (rate) =>
+  rate >= 1.0 ? 'critical' : rate >= 0.85 ? 'warning' : rate >= 0.7 ? 'caution' : 'ok';
 
-export function getWorstWithdrawalAlert(sub, y1 = YEARS[0], y2 = YEARS[YEARS.length - 1], projects = []) {
+export function getWorstWithdrawalAlert(
+  sub,
+  y1 = YEARS[0],
+  y2 = YEARS[YEARS.length - 1],
+  projects = [],
+) {
   let worst = 'ok';
   for (let y = y1; y <= y2; y += 1) {
     const state = getDirectionalAlertState(sub, y, false, projects);
-    if (ALERT_ORDER.indexOf(state.worstLevel) > ALERT_ORDER.indexOf(worst)) worst = state.worstLevel;
+    if (ALERT_ORDER.indexOf(state.worstLevel) > ALERT_ORDER.indexOf(worst))
+      worst = state.worstLevel;
   }
   return worst;
 }

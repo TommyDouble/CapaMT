@@ -62,10 +62,12 @@ function rowKey(sub, req) {
 }
 
 function isFinalClosed({ customer, offer, impact }) {
-  return customer.status === 'cancelled'
-    || offer.status === 'offer_cancelled'
-    || impact.status === 'RELEASED'
-    || impact.status === 'CONNECTED_RELEASED';
+  return (
+    customer.status === 'cancelled' ||
+    offer.status === 'offer_cancelled' ||
+    impact.status === 'RELEASED' ||
+    impact.status === 'CONNECTED_RELEASED'
+  );
 }
 
 function isSplitExpired(split) {
@@ -78,11 +80,13 @@ function isSplitExpired(split) {
 
 function isCapacRequired(assessment) {
   const upstream = assessment.upstream || {};
-  return readNextActions(assessment).includes(ACTION_CODES.DEMANDER_CAPAC)
-    || upstream.load?.status === 'PENDING'
-    || upstream.injection?.status === 'PENDING'
-    || isSplitExpired(upstream.load)
-    || isSplitExpired(upstream.injection);
+  return (
+    readNextActions(assessment).includes(ACTION_CODES.DEMANDER_CAPAC) ||
+    upstream.load?.status === 'PENDING' ||
+    upstream.injection?.status === 'PENDING' ||
+    isSplitExpired(upstream.load) ||
+    isSplitExpired(upstream.injection)
+  );
 }
 
 function hasPendingLayer(assessment, key) {
@@ -97,8 +101,8 @@ function hasPartialUpstreamResponse(assessment, requestedLoad, requestedInjectio
     requestedInjection > 0 ? upstream.injection : null,
   ].filter(Boolean);
   if (applicable.length <= 1) return false;
-  const answered = applicable.some(split => split.status && split.status !== 'PENDING');
-  const pending = applicable.some(split => split.status === 'PENDING');
+  const answered = applicable.some((split) => split.status && split.status !== 'PENDING');
+  const pending = applicable.some((split) => split.status === 'PENDING');
   return answered && pending;
 }
 
@@ -106,7 +110,8 @@ function deriveCapacActionStatus(assessment, requestedLoad, requestedInjection) 
   if (!isCapacRequired(assessment)) return null;
   if (hasPartialUpstreamResponse(assessment, requestedLoad, requestedInjection)) return 'partial';
   if (assessment.capac?.status === 'SENT') return 'sent';
-  if (!isUpstreamResponseComplete(assessment.upstream, requestedLoad, requestedInjection)) return 'not_sent';
+  if (!isUpstreamResponseComplete(assessment.upstream, requestedLoad, requestedInjection))
+    return 'not_sent';
   return null;
 }
 
@@ -119,7 +124,7 @@ function deriveStudySubStatus(assessment) {
   return 'FINALIZABLE';
 }
 
-function deriveWorkflowStep({ req, customer, assessment, offer, impact }) {
+function deriveWorkflowStep({ customer, assessment, offer, impact }) {
   if (isFinalClosed({ customer, offer, impact })) return 'closed';
   if (offer.status === 'offer_accepted') return 'to_connect';
   if (offer.status === 'offer_expired') return 'offer_action';
@@ -140,7 +145,9 @@ function deriveDirection(req) {
 
 function deriveDecision(req, assessment, queueItem) {
   if (queueItem?.decision) return queueItem.decision;
-  const statuses = [assessment.final?.load?.status, assessment.final?.injection?.status].filter(Boolean);
+  const statuses = [assessment.final?.load?.status, assessment.final?.injection?.status].filter(
+    Boolean,
+  );
   if (statuses.includes('PENDING')) return 'en_analyse';
   if (statuses.includes('KO')) return 'liste_attente';
   if (statuses.includes('LIMIT') || statuses.includes('FULL_FLEX')) return 'conditionnel';
@@ -150,7 +157,9 @@ function deriveDecision(req, assessment, queueItem) {
 
 function hasTechnicalResult(assessment) {
   if (assessment.status !== 'studied') return false;
-  const statuses = [assessment.final?.load?.status, assessment.final?.injection?.status].filter(Boolean);
+  const statuses = [assessment.final?.load?.status, assessment.final?.injection?.status].filter(
+    Boolean,
+  );
   return statuses.length > 0 && !statuses.includes('PENDING');
 }
 
@@ -168,9 +177,7 @@ function deriveDeadline(req, offer, expiry) {
   }
   if (offer.status === 'offer_expired') return offer.expiredAt || expiry?.date || null;
   if (offer.status === 'offer_accepted') {
-    return getCustomer(req).requested?.desiredCommissioningDate
-      || expiry?.date
-      || null;
+    return getCustomer(req).requested?.desiredCommissioningDate || expiry?.date || null;
   }
   return expiry?.date || null;
 }
@@ -186,10 +193,12 @@ function deriveReservationStatus(impact, offer, expiry) {
 }
 
 function getReservedMva(impact) {
-  return safeNum(impact.reservedLoadPermanent, 0)
-    + safeNum(impact.reservedLoadFlexible, 0)
-    + safeNum(impact.reservedInjectionPermanent, 0)
-    + safeNum(impact.reservedInjectionFlexible, 0);
+  return (
+    safeNum(impact.reservedLoadPermanent, 0) +
+    safeNum(impact.reservedLoadFlexible, 0) +
+    safeNum(impact.reservedInjectionPermanent, 0) +
+    safeNum(impact.reservedInjectionFlexible, 0)
+  );
 }
 
 function deriveUrgency({ stepKey, offer, reservationStatus, expiry, action, assessment }) {
@@ -208,16 +217,16 @@ function deriveUrgency({ stepKey, offer, reservationStatus, expiry, action, asse
 function buildQueueIndex(sub, projects) {
   const index = new Map();
   const { queue, conditionals, cancelled } = getQueueAnalysis(sub, projects);
-  [...queue, ...conditionals, ...cancelled].forEach(item => {
+  [...queue, ...conditionals, ...cancelled].forEach((item) => {
     index.set(item.req.id, item);
   });
   return index;
 }
 
 export function buildQueueCockpitRows(substations = [], projects = []) {
-  return substations.flatMap(sub => {
+  return substations.flatMap((sub) => {
     const queueIndex = buildQueueIndex(sub, projects);
-    return (sub.connectionRequests || []).flatMap(req => {
+    return (sub.connectionRequests || []).flatMap((req) => {
       const customer = getCustomer(req);
       const assessment = getAssessment(req);
       const offer = getOffer(req);
@@ -238,7 +247,11 @@ export function buildQueueCockpitRows(substations = [], projects = []) {
       const direction = deriveDirection(req);
       const decision = deriveDecision(req, assessment, queueItem);
       const limitingConstraint = deriveConstraint(req, assessment);
-      const conditionSummary = buildConditionSummary(req, projects, displayDecision === 'conditionnel');
+      const conditionSummary = buildConditionSummary(
+        req,
+        projects,
+        displayDecision === 'conditionnel',
+      );
       const studySubStatus = deriveStudySubStatus(assessment);
       const fifoRank = queueItem?.position ?? null;
       const urgency = deriveUrgency({
@@ -250,86 +263,111 @@ export function buildQueueCockpitRows(substations = [], projects = []) {
         assessment,
       });
       const pendingActionCodes = readNextActions(assessment);
-      const pendingActionLabels = pendingActionCodes.map(code => getActionLabel(code, { assessment }));
-      const capacActionStatus = deriveCapacActionStatus(assessment, requestedLoad, requestedInjection);
+      const pendingActionLabels = pendingActionCodes.map((code) =>
+        getActionLabel(code, { assessment }),
+      );
+      const capacActionStatus = deriveCapacActionStatus(
+        assessment,
+        requestedLoad,
+        requestedInjection,
+      );
       const customerName = customer.client?.name || '(sans titre)';
       const reference = customer.client?.reference || '';
       const type = customer.client?.type || 'autre';
 
-      return [{
-        id: rowKey(sub, req),
-        req,
-        sub,
-        substationId: sub.id,
-        substationName: sub.name,
-        substationCode: sub.code,
-        customerName,
-        reference,
-        type,
-        clientSearchText: [customerName, reference, type, customer.site?.label, sub.name, sub.code]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase(),
-        stepKey,
-        studySubStatus,
-        technicalResult,
-        action,
-        pendingActionCodes,
-        pendingActionLabels,
-        pendingActionCount: pendingActionCodes.length,
-        capacActionStatus,
-        direction,
-        decision,
-        displayDecision,
-        limitingConstraint,
-        reservationStatus,
-        displayReservationStatus,
-        urgency,
-        deadline,
-        expiry,
-        position: fifoRank,
-        fifoRank,
-        fifoRankLabel: fifoRank != null ? `#${fifoRank}` : 'hors file',
-        isHeadOfQueue: fifoRank === 1,
-        conditionSummary,
-        permanentLoad: safeNum(impact.reservedLoadPermanent, 0),
-        flexibleLoad: safeNum(impact.reservedLoadFlexible, 0),
-        permanentInjection: safeNum(impact.reservedInjectionPermanent, 0),
-        flexibleInjection: safeNum(impact.reservedInjectionFlexible, 0),
-        requestedLoad,
-        requestedInjection,
-        displayPowerTotalMva: technicalResult ? totalReservedMva : requestedLoad + requestedInjection,
-        totalReservedMva,
-        impactStatus: impact.status,
-        offerStatus: offer.status,
-        assessmentStatus: assessment.status,
-        customerStatus: customer.status,
-        isClosed: stepKey === 'closed',
-      }];
+      return [
+        {
+          id: rowKey(sub, req),
+          req,
+          sub,
+          substationId: sub.id,
+          substationName: sub.name,
+          substationCode: sub.code,
+          customerName,
+          reference,
+          type,
+          clientSearchText: [
+            customerName,
+            reference,
+            type,
+            customer.site?.label,
+            sub.name,
+            sub.code,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase(),
+          stepKey,
+          studySubStatus,
+          technicalResult,
+          action,
+          pendingActionCodes,
+          pendingActionLabels,
+          pendingActionCount: pendingActionCodes.length,
+          capacActionStatus,
+          direction,
+          decision,
+          displayDecision,
+          limitingConstraint,
+          reservationStatus,
+          displayReservationStatus,
+          urgency,
+          deadline,
+          expiry,
+          position: fifoRank,
+          fifoRank,
+          fifoRankLabel: fifoRank != null ? `#${fifoRank}` : 'hors file',
+          isHeadOfQueue: fifoRank === 1,
+          conditionSummary,
+          permanentLoad: safeNum(impact.reservedLoadPermanent, 0),
+          flexibleLoad: safeNum(impact.reservedLoadFlexible, 0),
+          permanentInjection: safeNum(impact.reservedInjectionPermanent, 0),
+          flexibleInjection: safeNum(impact.reservedInjectionFlexible, 0),
+          requestedLoad,
+          requestedInjection,
+          displayPowerTotalMva: technicalResult
+            ? totalReservedMva
+            : requestedLoad + requestedInjection,
+          totalReservedMva,
+          impactStatus: impact.status,
+          offerStatus: offer.status,
+          assessmentStatus: assessment.status,
+          customerStatus: customer.status,
+          isClosed: stepKey === 'closed',
+        },
+      ];
     });
   });
 }
 
 export function buildQueueCockpitStats(rows = []) {
-  return rows.reduce((acc, row) => {
-    acc.total += 1;
-    if (!row.isClosed && row.action?.key && row.action.key !== 'VIEW') acc.actionNow += 1;
-    if (row.studySubStatus === 'CAPAC_ELIA_PENDING') acc.capacBlocking += 1;
-    if (row.offerStatus === 'offer_expired' || row.displayReservationStatus === 'expired') acc.expiredOffers += 1;
-    if (['QUEUE_RESERVED', 'STUDY_RESERVED', 'ACQUIRED', 'CONNECTED_RESERVED'].includes(row.impactStatus)) {
-      acc.activeReservedMva += row.totalReservedMva;
-    }
-    acc.byStep.all = (acc.byStep.all || 0) + 1;
-    acc.byStep[row.stepKey] = (acc.byStep[row.stepKey] || 0) + 1;
-    return acc;
-  }, {
-    total: 0,
-    actionNow: 0,
-    capacBlocking: 0,
-    expiredOffers: 0,
-    activeReservedMva: 0,
-    byStep: Object.fromEntries(QUEUE_WORKFLOW_STEPS.map(step => [step.key, 0])),
-  });
+  return rows.reduce(
+    (acc, row) => {
+      acc.total += 1;
+      if (!row.isClosed && row.action?.key && row.action.key !== 'VIEW') acc.actionNow += 1;
+      if (row.studySubStatus === 'CAPAC_ELIA_PENDING') acc.capacBlocking += 1;
+      if (row.offerStatus === 'offer_expired' || row.displayReservationStatus === 'expired')
+        acc.expiredOffers += 1;
+      if (
+        ['QUEUE_RESERVED', 'STUDY_RESERVED', 'ACQUIRED', 'CONNECTED_RESERVED'].includes(
+          row.impactStatus,
+        )
+      ) {
+        acc.activeReservedMva += row.totalReservedMva;
+      }
+      acc.byStep.all = (acc.byStep.all || 0) + 1;
+      acc.byStep[row.stepKey] = (acc.byStep[row.stepKey] || 0) + 1;
+      return acc;
+    },
+    {
+      total: 0,
+      actionNow: 0,
+      capacBlocking: 0,
+      expiredOffers: 0,
+      activeReservedMva: 0,
+      byStep: Object.fromEntries(QUEUE_WORKFLOW_STEPS.map((step) => [step.key, 0])),
+    },
+  );
 }
 
 export function getDefaultCockpitStep(rows = []) {
@@ -337,15 +375,16 @@ export function getDefaultCockpitStep(rows = []) {
 }
 
 export function filterQueueCockpitRows(rows = [], stepKey, filters = {}) {
-  return rows.filter(row => {
+  return rows.filter((row) => {
     if (stepKey && stepKey !== 'all' && row.stepKey !== stepKey) return false;
     if (filters.client?.trim()) {
       const terms = filters.client.trim().toLowerCase().split(/\s+/).filter(Boolean);
-      if (!terms.every(term => row.clientSearchText.includes(term))) return false;
+      if (!terms.every((term) => row.clientSearchText.includes(term))) return false;
     }
-    if (filters.substations?.length && !filters.substations.includes(row.substationId)) return false;
+    if (filters.substations?.length && !filters.substations.includes(row.substationId))
+      return false;
     if (filters.fifo?.length) {
-      const matchesFifo = filters.fifo.some(value => {
+      const matchesFifo = filters.fifo.some((value) => {
         if (value === 'in_queue') return row.fifoRank != null;
         if (value === 'head') return row.isHeadOfQueue;
         return false;
@@ -354,7 +393,11 @@ export function filterQueueCockpitRows(rows = [], stepKey, filters = {}) {
     }
     if (filters.directions?.length && !filters.directions.includes(row.direction)) return false;
     if (filters.decisions?.length && !filters.decisions.includes(row.displayDecision)) return false;
-    if (filters.reservations?.length && !filters.reservations.includes(row.displayReservationStatus)) return false;
+    if (
+      filters.reservations?.length &&
+      !filters.reservations.includes(row.displayReservationStatus)
+    )
+      return false;
     return true;
   });
 }
@@ -367,7 +410,7 @@ function toTime(value) {
 
 export function sortQueueCockpitRows(rows = [], sort = { field: 'priority', direction: 'desc' }) {
   const direction = sort.direction === 'asc' ? 1 : -1;
-  const valueFor = row => {
+  const valueFor = (row) => {
     if (sort.field === 'deadline') return toTime(row.deadline);
     if (sort.field === 'capacity') return row.displayPowerTotalMva;
     if (sort.field === 'customer') return row.customerName || '';

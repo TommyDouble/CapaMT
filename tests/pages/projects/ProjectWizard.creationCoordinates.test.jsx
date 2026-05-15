@@ -8,20 +8,25 @@ afterEach(cleanup);
 
 describe('ProjectWizard création SS', () => {
   it('recharge les coordonnées d’une sous-station créée par projet', () => {
-    const [effect] = computeEffectsFromBlocks([{
-      blockType: 'création',
-      _newSsId: 'ss-new-wizard',
-      name: 'SS Wizard',
-      code: 'WIZ',
-      commune: 'Liege',
-      coordinates: { lat: '50.61', lng: '5.56' },
-      voltageUpstream: '36kV',
-      tfos: [{ id: 't1', power: '25', role: 'normal' }],
-      coeffN: '0.90',
-      coeffN1: '1.00',
-      initialLoadMva: '0',
-      growthRatePct: '0',
-    }], []);
+    const [effect] = computeEffectsFromBlocks(
+      [
+        {
+          blockType: 'création',
+          _newSsId: 'ss-new-wizard',
+          name: 'SS Wizard',
+          code: 'WIZ',
+          commune: 'Liege',
+          coordinates: { lat: '50.61', lng: '5.56' },
+          voltageUpstream: '36kV',
+          tfos: [{ id: 't1', power: '25', role: 'normal' }],
+          coeffN: '0.90',
+          coeffN1: '1.00',
+          initialLoadMva: '0',
+          growthRatePct: '0',
+        },
+      ],
+      [],
+    );
 
     render(
       <ProjectWizard
@@ -36,7 +41,7 @@ describe('ProjectWizard création SS', () => {
         allSubstations={[]}
         onSave={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText('2. Travaux & effets réseau'));

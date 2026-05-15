@@ -5,17 +5,17 @@
 import React from 'react';
 
 const VIEW_LABELS = {
-  overview:        "Vue d'ensemble",
-  list:            'Sous-stations',
-  file_attente:    "File d'attente",
+  overview: "Vue d'ensemble",
+  list: 'Sous-stations',
+  file_attente: "File d'attente",
   investissements: 'Projets réseau',
-  detail:          null,
-  request_case:    'Dossier demande',
+  detail: null,
+  request_case: 'Dossier demande',
 };
 
 export function Topbar({ view, detailName, onBack }) {
   const isDetail = view === 'detail' || view === 'request_case';
-  const label = view === 'detail' ? detailName : (VIEW_LABELS[view] || view);
+  const label = view === 'detail' ? detailName : VIEW_LABELS[view] || view;
 
   return (
     <header className="v3-topbar">
@@ -33,12 +33,19 @@ export function Topbar({ view, detailName, onBack }) {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{
-          fontSize: 10, fontWeight: 600, fontFamily: 'var(--font-mono)',
-          color: 'var(--text-muted)', letterSpacing: '.04em',
-          background: 'var(--bg-muted)', padding: '3px 8px', borderRadius: 4,
-          border: '1px solid var(--border)',
-        }}>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--text-muted)',
+            letterSpacing: '.04em',
+            background: 'var(--bg-muted)',
+            padding: '3px 8px',
+            borderRadius: 4,
+            border: '1px solid var(--border)',
+          }}
+        >
           DIRECTIONNEL N-1
         </span>
       </div>

@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { STORAGE_KEY } from '../../src/constants/index.js';
-import { clearState, hydrateInitialAppState, importJSONFile, loadState, saveState } from '../../src/services/storage.js';
+import {
+  clearState,
+  hydrateInitialAppState,
+  importJSONFile,
+  loadState,
+  saveState,
+} from '../../src/services/storage.js';
 import { canonicalSubstation } from '../helpers/canonicalFixtures.js';
 
 describe('storage v12', () => {
@@ -35,10 +41,10 @@ describe('storage v12', () => {
       importJSONFile(
         file,
         () => reject(new Error('import pré-v12 accepté')),
-        message => {
+        (message) => {
           expect(message).toContain('pré-v12');
           resolve();
-        }
+        },
       );
     });
   });

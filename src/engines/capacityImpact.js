@@ -41,7 +41,9 @@ function addMonthsIso(value, months) {
   if (!start) return null;
   const day = start.getUTCDate();
   const target = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + months, 1));
-  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  const lastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
   target.setUTCDate(Math.min(day, lastDay));
   return target.toISOString().slice(0, 10);
 }
@@ -53,9 +55,7 @@ export function normalizeConnectedRetentionMonths(value) {
 
 export function getConnectedRetentionInfo(req, asOf = new Date()) {
   const offer = getOffer(req);
-  const months = normalizeConnectedRetentionMonths(
-    offer.connectedRetentionMonths
-  );
+  const months = normalizeConnectedRetentionMonths(offer.connectedRetentionMonths);
   const connectedAt = dateOnly(offer.connectedAt);
   const asOfIso = dateOnly(asOf) || dateOnly(new Date());
 
@@ -72,9 +72,10 @@ export function getConnectedRetentionInfo(req, asOf = new Date()) {
   }
 
   const retentionUntil = addMonthsIso(connectedAt, months);
-  const daysLeft = retentionUntil && asOfIso
-    ? Math.ceil((utcDate(retentionUntil) - utcDate(asOfIso)) / DAY_MS)
-    : null;
+  const daysLeft =
+    retentionUntil && asOfIso
+      ? Math.ceil((utcDate(retentionUntil) - utcDate(asOfIso)) / DAY_MS)
+      : null;
 
   return {
     connectedAt,
@@ -120,8 +121,15 @@ export function computeCapacityImpact(req, asOf = new Date()) {
   const offer = getOffer(req);
   const finalAvailable = hasFinalResponse(req, assessment);
 
-  const finalStatuses = [assessment.final?.load?.status, assessment.final?.injection?.status].filter(Boolean);
-  if (offer.status === 'offer_cancelled' || customer.status === 'cancelled' || finalStatuses.includes('KO')) {
+  const finalStatuses = [
+    assessment.final?.load?.status,
+    assessment.final?.injection?.status,
+  ].filter(Boolean);
+  if (
+    offer.status === 'offer_cancelled' ||
+    customer.status === 'cancelled' ||
+    finalStatuses.includes('KO')
+  ) {
     return emptyImpact('RELEASED', 'CUSTOMER_CANCELLATION');
   }
   if (offer.status === 'offer_connected') {
@@ -131,8 +139,8 @@ export function computeCapacityImpact(req, asOf = new Date()) {
     const impact = manuallyReleased
       ? emptyImpact('CONNECTED_RELEASED', 'CONNECTED_MANUAL_RELEASE')
       : retention.expired
-      ? emptyImpact('CONNECTED_RELEASED', 'RETENTION_ENDED')
-      : impactFromFinal(req, 'CONNECTED_RESERVED', 'CONNECTED_RETENTION');
+        ? emptyImpact('CONNECTED_RELEASED', 'RETENTION_ENDED')
+        : impactFromFinal(req, 'CONNECTED_RESERVED', 'CONNECTED_RETENTION');
     return {
       ...impact,
       connectedRetention: retention,
@@ -149,7 +157,12 @@ export function computeCapacityImpact(req, asOf = new Date()) {
   if (offer.status === 'offer_accepted') {
     return impactFromFinal(req, 'ACQUIRED', 'OFFER_ACCEPTED');
   }
-  if ((assessment.status === 'studied' || offer.status === 'offer_formulated' || offer.status === 'offer_expired') && finalAvailable) {
+  if (
+    (assessment.status === 'studied' ||
+      offer.status === 'offer_formulated' ||
+      offer.status === 'offer_expired') &&
+    finalAvailable
+  ) {
     return impactFromFinal(req, 'STUDY_RESERVED', 'TECHNICAL_RESPONSE');
   }
   if (customer.status === 'ready_for_study') {
@@ -169,14 +182,19 @@ export function computeCapacityImpact(req, asOf = new Date()) {
 function hasFinalResponse(req, assessment) {
   const load = getRequestedLoad(req);
   const injection = getRequestedInjection(req);
-  const loadOk = load <= 0 || (assessment.final?.load && assessment.final.load.status !== 'PENDING');
-  const injectionOk = injection <= 0 || (assessment.final?.injection && assessment.final.injection.status !== 'PENDING');
+  const loadOk =
+    load <= 0 || (assessment.final?.load && assessment.final.load.status !== 'PENDING');
+  const injectionOk =
+    injection <= 0 ||
+    (assessment.final?.injection && assessment.final.injection.status !== 'PENDING');
   return loadOk && injectionOk;
 }
 
 export function isActiveCapacityImpact(impactOrReq) {
   const impact = impactOrReq?.status ? impactOrReq : computeCapacityImpact(impactOrReq);
-  return ['QUEUE_RESERVED', 'STUDY_RESERVED', 'ACQUIRED', 'CONNECTED_RESERVED'].includes(impact.status);
+  return ['QUEUE_RESERVED', 'STUDY_RESERVED', 'ACQUIRED', 'CONNECTED_RESERVED'].includes(
+    impact.status,
+  );
 }
 
 export function isStudyReservedImpact(impactOrReq) {

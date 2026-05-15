@@ -22,7 +22,9 @@ describe('assemblage runtime', () => {
     const [normalized] = normalizeSubstations([sub]);
     const queue = getQueueAnalysis(normalized).queue;
 
-    expect(normalizeRequest(sub.connectionRequests[0], sub.id).customer.client.name).toBe('Client Test');
+    expect(normalizeRequest(sub.connectionRequests[0], sub.id).customer.client.name).toBe(
+      'Client Test',
+    );
     expect(queue).toHaveLength(1);
     expect(buildQueueCockpitRows([normalized])).toHaveLength(1);
   });

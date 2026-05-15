@@ -26,13 +26,13 @@ const marks = [
   ['capacity', 'Added'],
   ['invest', 'ments'],
   ['engines/', 'load'],
-].map(parts => parts.join(''));
+].map((parts) => parts.join(''));
 
 function collectFiles(entry) {
   const full = path.join(root, entry);
   const stat = fs.statSync(full);
   if (stat.isFile()) return [full];
-  return fs.readdirSync(full, { withFileTypes: true }).flatMap(dirent => {
+  return fs.readdirSync(full, { withFileTypes: true }).flatMap((dirent) => {
     if (dirent.name === 'node_modules' || dirent.name === 'dist') return [];
     const child = path.join(entry, dirent.name);
     return dirent.isDirectory() ? collectFiles(child) : [path.join(root, child)];

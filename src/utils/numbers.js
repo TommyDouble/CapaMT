@@ -11,4 +11,4 @@ export const safeNum = (v, fallback = 0) => {
 
 /** Division sécurisée contre /0 et NaN. */
 export const safeDiv = (num, den, fallback = 0) =>
-  (isFinite(den) && Math.abs(den) > 1e-9) ? num / den : fallback;
+  isFinite(den) && Math.abs(den) > 1e-9 ? num / den : fallback;

@@ -4,14 +4,14 @@ import { computeCapacityImpact } from '../engines/capacityImpact.js';
 import { normalizeRequest } from '../engines/requestModel.js';
 
 const PROJ_STATUS_NORMALIZE = {
-  'Planifié': 'planifié',
+  Planifié: 'planifié',
   'En cours': 'en_cours',
-  'Validé': 'validé',
-  'Annulé': 'annulé',
-  'annulée': 'annulé',
+  Validé: 'validé',
+  Annulé: 'annulé',
+  annulée: 'annulé',
 };
 
-export const normalizeStatus = status => PROJ_STATUS_NORMALIZE[status] || status;
+export const normalizeStatus = (status) => PROJ_STATUS_NORMALIZE[status] || status;
 
 function emptyDirectionalModel() {
   return {
@@ -70,7 +70,7 @@ function normalizeDirectionalModel(model) {
 
 function normalizeTransformerConfig(config = {}) {
   const transformers = Array.isArray(config.transformers)
-    ? config.transformers.map(t => ({
+    ? config.transformers.map((t) => ({
         id: t.id,
         role: t.role || 'normal',
         power: safeNum(t.power, 0),
@@ -89,8 +89,8 @@ function normalizeTransformerConfig(config = {}) {
 }
 
 export function normalizeSubstations(substations) {
-  return (substations || []).map(sub => {
-    const requests = (sub.connectionRequests || []).map(req => {
+  return (substations || []).map((sub) => {
+    const requests = (sub.connectionRequests || []).map((req) => {
       const normalized = normalizeRequest(req, sub.id);
       return { ...normalized, capacityImpact: computeCapacityImpact(normalized) };
     });
@@ -113,7 +113,7 @@ export function normalizeSubstations(substations) {
 }
 
 export function normalizeProjects(projects) {
-  return (projects || []).map(project => ({
+  return (projects || []).map((project) => ({
     ...project,
     status: normalizeStatus(project.status),
     effects: (project.effects || []).map(normalizeProjectEffect),

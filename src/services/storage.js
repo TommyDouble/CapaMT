@@ -11,13 +11,17 @@ import { STORAGE_KEY, YEARS } from '../constants/index.js';
 import { normalizeSubstations, normalizeProjects } from '../utils/normalize.js';
 import { INITIAL_SUBSTATIONS, INITIAL_NETWORK_PROJECTS } from '../data/initial.js';
 import {
-  getWithdrawalRigid, getWithdrawalTotal,
-  getInjectionRigid, getInjectionTotal,
-  getDirectCapacityN1AtYear, getReverseCapacityN1AtYear,
-  getResidualWithdrawalRigid, getResidualInjectionRigid,
-  getUtilizationWithdrawalRigid, getUtilizationInjectionRigid,
+  getWithdrawalRigid,
+  getWithdrawalTotal,
+  getInjectionRigid,
+  getInjectionTotal,
+  getDirectCapacityN1AtYear,
+  getReverseCapacityN1AtYear,
+  getResidualWithdrawalRigid,
+  getResidualInjectionRigid,
+  getUtilizationWithdrawalRigid,
+  getUtilizationInjectionRigid,
 } from '../engines/directionalSubstation.js';
-import { getCapacityAtYear } from '../engines/capacity.js';
 
 const STORAGE_VERSION = 12;
 
@@ -25,13 +29,16 @@ const STORAGE_VERSION = 12;
 
 export function saveState(substations, networkProjects, activityLog) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      version: STORAGE_VERSION,
-      savedAt: new Date().toISOString(),
-      substations,
-      networkProjects,
-      activityLog,
-    }));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: STORAGE_VERSION,
+        savedAt: new Date().toISOString(),
+        substations,
+        networkProjects,
+        activityLog,
+      }),
+    );
   } catch (_) {}
 }
 
@@ -44,11 +51,13 @@ export function loadState() {
 
     if (!d.version || d.version < STORAGE_VERSION) return null;
 
-    if (d.substations)     d.substations    = normalizeSubstations(d.substations);
+    if (d.substations) d.substations = normalizeSubstations(d.substations);
     if (d.networkProjects) d.networkProjects = normalizeProjects(d.networkProjects);
-    if (!d.activityLog)    d.activityLog     = [];
+    if (!d.activityLog) d.activityLog = [];
     return d;
-  } catch (_) { return null; }
+  } catch (_) {
+    return null;
+  }
 }
 
 /**
@@ -57,28 +66,34 @@ export function loadState() {
 export function hydrateInitialAppState() {
   const saved = loadState();
   return {
-    substations:     saved?.substations     || normalizeSubstations(INITIAL_SUBSTATIONS),
-    networkProjects: saved?.networkProjects  || normalizeProjects(INITIAL_NETWORK_PROJECTS),
-    activityLog:     saved?.activityLog     || [],
-    savedAt:         saved?.savedAt         || null,
-    hasSession:      !!saved,
+    substations: saved?.substations || normalizeSubstations(INITIAL_SUBSTATIONS),
+    networkProjects: saved?.networkProjects || normalizeProjects(INITIAL_NETWORK_PROJECTS),
+    activityLog: saved?.activityLog || [],
+    savedAt: saved?.savedAt || null,
+    hasSession: !!saved,
   };
 }
 
 export function clearState() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (_) {}
 }
 
 // ── Export JSON ─────────────────────────────────────────────────────────────
 
 export function exportJSON(substations, networkProjects = [], activityLog = []) {
-  const data = JSON.stringify({
-    version:    STORAGE_VERSION,
-    exportedAt: new Date().toISOString(),
-    substations,
-    networkProjects,
-    activityLog,
-  }, null, 2);
+  const data = JSON.stringify(
+    {
+      version: STORAGE_VERSION,
+      exportedAt: new Date().toISOString(),
+      substations,
+      networkProjects,
+      activityLog,
+    },
+    null,
+    2,
+  );
   _triggerDownload(data, `resa-capacite-${_today()}.json`, 'application/json');
 }
 
@@ -86,23 +101,34 @@ export function exportJSON(substations, networkProjects = [], activityLog = []) 
 
 export function exportCSV(substations, networkProjects = []) {
   const header = [
-    'Sous-station', 'Code', 'Commune', 'Cap.N-1 (MVA)', 'Cap.Inverse.N-1 (MVA)',
-    ...YEARS.flatMap(y => [
-      `CapDirN1_${y}`, `CapRevN1_${y}`,
-      `WRigid_${y}`, `WTotal_${y}`,
-      `InjRigid_${y}`, `InjTotal_${y}`,
-      `ResW_${y}`, `ResI_${y}`,
-      `UtilW_${y}`, `UtilI_${y}`,
+    'Sous-station',
+    'Code',
+    'Commune',
+    'Cap.N-1 (MVA)',
+    'Cap.Inverse.N-1 (MVA)',
+    ...YEARS.flatMap((y) => [
+      `CapDirN1_${y}`,
+      `CapRevN1_${y}`,
+      `WRigid_${y}`,
+      `WTotal_${y}`,
+      `InjRigid_${y}`,
+      `InjTotal_${y}`,
+      `ResW_${y}`,
+      `ResI_${y}`,
+      `UtilW_${y}`,
+      `UtilI_${y}`,
     ]),
   ].join(';');
 
-  const rows = substations.map(s => {
+  const rows = substations.map((s) => {
     const cols = [
-      s.name, s.code, s.commune,
+      s.name,
+      s.code,
+      s.commune,
       getDirectCapacityN1AtYear(s, YEARS[0], networkProjects).toFixed(1),
       getReverseCapacityN1AtYear(s, YEARS[0], networkProjects).toFixed(1),
     ];
-    YEARS.forEach(y => {
+    YEARS.forEach((y) => {
       cols.push(
         getDirectCapacityN1AtYear(s, y, networkProjects).toFixed(2),
         getReverseCapacityN1AtYear(s, y, networkProjects).toFixed(2),
@@ -122,7 +148,7 @@ export function exportCSV(substations, networkProjects = []) {
   _triggerDownload(
     '\uFEFF' + [header, ...rows].join('\n'),
     `resa-export-${_today()}.csv`,
-    'text/csv;charset=utf-8'
+    'text/csv;charset=utf-8',
   );
 }
 
@@ -130,37 +156,42 @@ export function exportCSV(substations, networkProjects = []) {
 
 export function importJSONFile(file, onSuccess, onError) {
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = (e) => {
     try {
       const d = JSON.parse(e.target.result);
-      if (!d.substations)
-        throw new Error('Format invalide : propriété substations manquante.');
+      if (!d.substations) throw new Error('Format invalide : propriété substations manquante.');
 
       if (d.version && d.version > STORAGE_VERSION)
         throw new Error(
-          `Format v${d.version} détecté — version postérieure (actuelle : v${STORAGE_VERSION}).`
+          `Format v${d.version} détecté — version postérieure (actuelle : v${STORAGE_VERSION}).`,
         );
       if (!d.version || d.version < STORAGE_VERSION)
-        throw new Error('Format pré-v12 non importé automatiquement : repartez des données d’exemple ou exportez au format v12.');
+        throw new Error(
+          'Format pré-v12 non importé automatiquement : repartez des données d’exemple ou exportez au format v12.',
+        );
 
-      d.substations     = normalizeSubstations(d.substations);
+      d.substations = normalizeSubstations(d.substations);
       if (d.networkProjects) d.networkProjects = normalizeProjects(d.networkProjects);
       if (!d.activityLog) d.activityLog = [];
       onSuccess(d);
-    } catch (err) { onError(err.message); }
+    } catch (err) {
+      onError(err.message);
+    }
   };
   reader.readAsText(file);
 }
 
 // ── Helpers privés ──────────────────────────────────────────────────────────
 
-function _today() { return new Date().toISOString().slice(0, 10); }
+function _today() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 function _triggerDownload(content, filename, type) {
   const blob = new Blob([content], { type });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);

@@ -6,28 +6,28 @@
 import { useState, useRef } from 'react';
 
 const PREV_LABELS = {
-  list:            'la liste',
-  overview:        "la vue d'ensemble",
-  file_attente:    "la file d'attente",
+  list: 'la liste',
+  overview: "la vue d'ensemble",
+  file_attente: "la file d'attente",
   investissements: 'le portefeuille',
-  carte:           'la carte',
-  detail:          'la sous-station',
-  request_case:    'le dossier',
+  carte: 'la carte',
+  detail: 'la sous-station',
+  request_case: 'le dossier',
 };
 
 export function useNavigation() {
-  const [view,          setView]         = useState('overview');
-  const [navActive,     setNavActive]    = useState('overview');
-  const [selectedId,    setSelectedId]   = useState(null);
-  const [selectedTab,   setSelectedTab]  = useState('evolution');
+  const [view, setView] = useState('overview');
+  const [navActive, setNavActive] = useState('overview');
+  const [selectedId, setSelectedId] = useState(null);
+  const [selectedTab, setSelectedTab] = useState('evolution');
   const [selectedReqId, setSelectedReqId] = useState(null);
-  const [prevView,      setPrevView]     = useState('list');
+  const [prevView, setPrevView] = useState('list');
 
   // Use ref for view to avoid stale closures in callbacks
   const viewRef = useRef(view);
   viewRef.current = view;
 
-  const nav = v => {
+  const nav = (v) => {
     setView(v);
     setNavActive(v);
     setSelectedId(null);
@@ -63,8 +63,16 @@ export function useNavigation() {
   const prevLabel = PREV_LABELS[prevView];
 
   return {
-    view, navActive, selectedId, selectedTab, selectedReqId,
-    prevView, prevLabel,
-    nav, handleSelect, handleBack, navigateToRequest,
+    view,
+    navActive,
+    selectedId,
+    selectedTab,
+    selectedReqId,
+    prevView,
+    prevLabel,
+    nav,
+    handleSelect,
+    handleBack,
+    navigateToRequest,
   };
 }

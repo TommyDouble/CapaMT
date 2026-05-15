@@ -134,7 +134,7 @@ export function isQualifiedLimitingConstraint(assessment = {}) {
   const constraint = assessment.final?.limitingConstraint;
   if (!QUALIFIED_CONSTRAINTS.has(constraint)) return false;
   const finalSplits = [assessment.final?.load, assessment.final?.injection].filter(Boolean);
-  return finalSplits.some(split => CONSTRAINED_FINAL_STATUSES.has(split.status));
+  return finalSplits.some((split) => CONSTRAINED_FINAL_STATUSES.has(split.status));
 }
 
 export function getRequestDirection(load, injection) {
@@ -178,10 +178,17 @@ function sumComponents(items = []) {
 }
 
 export function normalizePowerBreakdown(powerBreakdown = {}, requested = {}) {
-  const load = Array.isArray(powerBreakdown.load) ? powerBreakdown.load.map(normalizeLoadComponent) : [];
-  const injection = Array.isArray(powerBreakdown.injection) ? powerBreakdown.injection.map(normalizeInjectionComponent) : [];
+  const load = Array.isArray(powerBreakdown.load)
+    ? powerBreakdown.load.map(normalizeLoadComponent)
+    : [];
+  const injection = Array.isArray(powerBreakdown.injection)
+    ? powerBreakdown.injection.map(normalizeInjectionComponent)
+    : [];
   const loadMode = normalizeMode(powerBreakdown.loadMode, load.length ? 'AUTO' : 'MANUAL');
-  const injectionMode = normalizeMode(powerBreakdown.injectionMode, injection.length ? 'AUTO' : 'MANUAL');
+  const injectionMode = normalizeMode(
+    powerBreakdown.injectionMode,
+    injection.length ? 'AUTO' : 'MANUAL',
+  );
   return {
     loadMode,
     injectionMode,
@@ -197,7 +204,8 @@ export function computePowerBreakdownSummary(powerBreakdown = {}, requested = {}
   const loadSum = sumComponents(normalized.load);
   const injectionSum = sumComponents(normalized.injection);
   const requestedLoad = normalized.loadMode === 'AUTO' ? loadSum : round(requested.load);
-  const requestedInjection = normalized.injectionMode === 'AUTO' ? injectionSum : round(requested.injection);
+  const requestedInjection =
+    normalized.injectionMode === 'AUTO' ? injectionSum : round(requested.injection);
   return {
     loadSum,
     injectionSum,
@@ -208,9 +216,14 @@ export function computePowerBreakdownSummary(powerBreakdown = {}, requested = {}
   };
 }
 
-export function isUpstreamResponseComplete(upstream = {}, requestedLoad = 0, requestedInjection = 0) {
+export function isUpstreamResponseComplete(
+  upstream = {},
+  requestedLoad = 0,
+  requestedInjection = 0,
+) {
   const loadOk = requestedLoad <= 0 || (upstream.load && upstream.load.status !== 'PENDING');
-  const injectionOk = requestedInjection <= 0 || (upstream.injection && upstream.injection.status !== 'PENDING');
+  const injectionOk =
+    requestedInjection <= 0 || (upstream.injection && upstream.injection.status !== 'PENDING');
   return Boolean(loadOk && injectionOk);
 }
 
@@ -231,25 +244,45 @@ function latestDate(dates = []) {
   return sorted[sorted.length - 1] || '';
 }
 
-function upstreamResponseDates(upstream = {}, requestedLoad = 0, requestedInjection = 0, today = isoToday()) {
+function upstreamResponseDates(
+  upstream = {},
+  requestedLoad = 0,
+  requestedInjection = 0,
+  today = isoToday(),
+) {
   const splits = [
     requestedLoad > 0 ? upstream.load : null,
     requestedInjection > 0 ? upstream.injection : null,
-  ].filter(split => split && split.status !== 'PENDING');
-  return splits.map(split => clampActualDate(split.answeredAt || split.responseDate || '', today)).filter(Boolean);
+  ].filter((split) => split && split.status !== 'PENDING');
+  return splits
+    .map((split) => clampActualDate(split.answeredAt || split.responseDate || '', today))
+    .filter(Boolean);
 }
 
-export function latestUpstreamResponseDate(upstream = {}, requestedLoad = 0, requestedInjection = 0, today = isoToday()) {
+export function latestUpstreamResponseDate(
+  upstream = {},
+  requestedLoad = 0,
+  requestedInjection = 0,
+  today = isoToday(),
+) {
   return latestDate(upstreamResponseDates(upstream, requestedLoad, requestedInjection, today));
 }
 
-export function normalizeCapacTracking(capac = {}, upstream = {}, requestedLoad = 0, requestedInjection = 0, today = isoToday()) {
+export function normalizeCapacTracking(
+  capac = {},
+  upstream = {},
+  requestedLoad = 0,
+  requestedInjection = 0,
+  today = isoToday(),
+) {
   const upstreamComplete = isUpstreamResponseComplete(upstream, requestedLoad, requestedInjection);
   const sentAt = clampActualDate(capac.sentAt, today);
   const splitReceivedAt = upstreamComplete
     ? latestUpstreamResponseDate(upstream, requestedLoad, requestedInjection, today)
     : '';
-  let receivedAt = upstreamComplete ? latestDate([clampActualDate(capac.receivedAt, today), splitReceivedAt]) : '';
+  let receivedAt = upstreamComplete
+    ? latestDate([clampActualDate(capac.receivedAt, today), splitReceivedAt])
+    : '';
   if (sentAt && receivedAt && receivedAt < sentAt) receivedAt = sentAt;
   const derivedStatus = receivedAt ? 'RECEIVED' : sentAt ? 'SENT' : 'NOT_SENT';
   let status = CAPAC_STATUSES.has(capac.status) ? capac.status : derivedStatus;
@@ -259,10 +292,27 @@ export function normalizeCapacTracking(capac = {}, upstream = {}, requestedLoad 
   return { status, sentAt, receivedAt };
 }
 
-export function updateCapacTrackingForUpstream(capac = {}, upstream = {}, requestedLoad = 0, requestedInjection = 0, today = isoToday()) {
-  const normalized = normalizeCapacTracking(capac, upstream, requestedLoad, requestedInjection, today);
+export function updateCapacTrackingForUpstream(
+  capac = {},
+  upstream = {},
+  requestedLoad = 0,
+  requestedInjection = 0,
+  today = isoToday(),
+) {
+  const normalized = normalizeCapacTracking(
+    capac,
+    upstream,
+    requestedLoad,
+    requestedInjection,
+    today,
+  );
   if (isUpstreamResponseComplete(upstream, requestedLoad, requestedInjection)) {
-    const splitReceivedAt = latestUpstreamResponseDate(upstream, requestedLoad, requestedInjection, today);
+    const splitReceivedAt = latestUpstreamResponseDate(
+      upstream,
+      requestedLoad,
+      requestedInjection,
+      today,
+    );
     return {
       ...normalized,
       status: 'RECEIVED',
@@ -279,24 +329,28 @@ export function isCustomerComplete(customer = {}) {
   const requested = customer.requested || {};
   const hasPower = safeNum(requested.load, 0) + safeNum(requested.injection, 0) > 0;
   return Boolean(
-    customer.client?.name?.trim()
-    && customer.targetSubstationId
-    && customer.requestDate
-    && hasPower
-    && (requested.desiredCommissioningDate || requested.year)
+    customer.client?.name?.trim() &&
+    customer.targetSubstationId &&
+    customer.requestDate &&
+    hasPower &&
+    (requested.desiredCommissioningDate || requested.year),
   );
 }
 
 function normalizeSplit(split, requested, source, fallbackReason) {
   if (requested <= 0) return undefined;
   if (!split) return pendingSplit(requested, source, fallbackReason);
-  if (split.status === 'PENDING') return pendingSplit(requested, source, split.reason || fallbackReason);
-  return withRequested({
-    ...split,
-    source,
-    reason: split.reason || fallbackReason,
-    confidence: split.confidence || 'MEDIUM',
-  }, requested);
+  if (split.status === 'PENDING')
+    return pendingSplit(requested, source, split.reason || fallbackReason);
+  return withRequested(
+    {
+      ...split,
+      source,
+      reason: split.reason || fallbackReason,
+      confidence: split.confidence || 'MEDIUM',
+    },
+    requested,
+  );
 }
 
 function normalizeLayer(layer = {}, requestedLoad, requestedInjection, source, fallbackReason) {
@@ -311,12 +365,35 @@ function normalizeAssessment(baseAssessment = {}, customer) {
   const base = { ...defaultAssessment(), ...baseAssessment };
   const load = safeNum(customer.requested?.load, 0);
   const injection = safeNum(customer.requested?.injection, 0);
-  const upstream = normalizeLayer(base.upstream, load, injection, 'UPSTREAM', 'Réponse CAPAC à compléter');
-  const substation = normalizeLayer(base.substation, load, injection, 'SUBSTATION', 'Réponse local/sous-station à compléter');
-  const network = normalizeLayer(base.network, load, injection, 'NETWORK', 'Étude réseau MT à compléter');
+  const upstream = normalizeLayer(
+    base.upstream,
+    load,
+    injection,
+    'UPSTREAM',
+    'Réponse CAPAC à compléter',
+  );
+  const substation = normalizeLayer(
+    base.substation,
+    load,
+    injection,
+    'SUBSTATION',
+    'Réponse local/sous-station à compléter',
+  );
+  const network = normalizeLayer(
+    base.network,
+    load,
+    injection,
+    'NETWORK',
+    'Étude réseau MT à compléter',
+  );
   const final = {
     load: normalizeSplit(base.final?.load, load, 'FINAL', 'Réponse finale à calculer'),
-    injection: normalizeSplit(base.final?.injection, injection, 'FINAL', 'Réponse finale à calculer'),
+    injection: normalizeSplit(
+      base.final?.injection,
+      injection,
+      'FINAL',
+      'Réponse finale à calculer',
+    ),
     limitingConstraint: base.final?.limitingConstraint || 'UNKNOWN',
   };
   return {
@@ -338,7 +415,8 @@ function normalizeOffer(baseOffer = {}) {
   return {
     ...base,
     status: base.status || 'not_applicable',
-    connectedRetentionMonths: base.status === 'offer_connected' ? connectedRetentionMonths : base.connectedRetentionMonths,
+    connectedRetentionMonths:
+      base.status === 'offer_connected' ? connectedRetentionMonths : base.connectedRetentionMonths,
     connectedReleasedAt: base.connectedReleasedAt || '',
     connectedReleaseComment: base.connectedReleaseComment || '',
     comment: base.comment || '',
@@ -359,28 +437,46 @@ export function normalizeRequest(req = {}, targetSubstationId = req.targetSubsta
         ...fallbackCustomer.site.address,
         ...(rawCustomer.site?.address || {}),
       },
-      coordinates: normalizeCoordinates({
-        ...fallbackCustomer.site.coordinates,
-        ...(rawCustomer.site?.coordinates || {}),
-      }, 'manual'),
+      coordinates: normalizeCoordinates(
+        {
+          ...fallbackCustomer.site.coordinates,
+          ...(rawCustomer.site?.coordinates || {}),
+        },
+        'manual',
+      ),
     },
     requested: { ...fallbackCustomer.requested, ...(rawCustomer.requested || {}) },
-    targetSubstationId: rawCustomer.targetSubstationId || targetSubstationId || fallbackCustomer.targetSubstationId,
+    targetSubstationId:
+      rawCustomer.targetSubstationId || targetSubstationId || fallbackCustomer.targetSubstationId,
   };
 
-  customer.powerBreakdown = normalizePowerBreakdown(rawCustomer.powerBreakdown || fallbackCustomer.powerBreakdown, customer.requested);
-  const breakdownSummary = computePowerBreakdownSummary(customer.powerBreakdown, customer.requested);
-  customer.requested.load = customer.powerBreakdown.loadMode === 'AUTO'
-    ? breakdownSummary.loadSum
-    : round(customer.requested.load);
-  customer.requested.injection = customer.powerBreakdown.injectionMode === 'AUTO'
-    ? breakdownSummary.injectionSum
-    : round(customer.requested.injection);
+  customer.powerBreakdown = normalizePowerBreakdown(
+    rawCustomer.powerBreakdown || fallbackCustomer.powerBreakdown,
+    customer.requested,
+  );
+  const breakdownSummary = computePowerBreakdownSummary(
+    customer.powerBreakdown,
+    customer.requested,
+  );
+  customer.requested.load =
+    customer.powerBreakdown.loadMode === 'AUTO'
+      ? breakdownSummary.loadSum
+      : round(customer.requested.load);
+  customer.requested.injection =
+    customer.powerBreakdown.injectionMode === 'AUTO'
+      ? breakdownSummary.injectionSum
+      : round(customer.requested.injection);
   customer.requested.total = round(customer.requested.load + customer.requested.injection);
-  customer.requested.direction = getRequestDirection(customer.requested.load, customer.requested.injection);
-  customer.status = customer.status === 'cancelled'
-    ? 'cancelled'
-    : isCustomerComplete(customer) ? 'ready_for_study' : 'incomplete';
+  customer.requested.direction = getRequestDirection(
+    customer.requested.load,
+    customer.requested.injection,
+  );
+  customer.status =
+    customer.status === 'cancelled'
+      ? 'cancelled'
+      : isCustomerComplete(customer)
+        ? 'ready_for_study'
+        : 'incomplete';
   if (customer.status === 'ready_for_study' && !customer.readyForStudyAt) {
     customer.readyForStudyAt = customer.requestDate || customer.createdAt || isoNow();
   }
