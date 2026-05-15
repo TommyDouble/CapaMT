@@ -39,7 +39,14 @@ export function saveState(substations, networkProjects, activityLog) {
         activityLog,
       }),
     );
-  } catch (_) {}
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: isQuotaExceededError(error) ? 'quota' : 'unknown',
+      error,
+    };
+  }
 }
 
 export function loadState() {
@@ -100,6 +107,14 @@ export function exportJSON(substations, networkProjects = [], activityLog = []) 
 // ── Export CSV ──────────────────────────────────────────────────────────────
 
 export function exportCSV(substations, networkProjects = []) {
+  _triggerDownload(
+    '\uFEFF' + buildCSV(substations, networkProjects),
+    `resa-export-${_today()}.csv`,
+    'text/csv;charset=utf-8',
+  );
+}
+
+export function buildCSV(substations, networkProjects = []) {
   const header = [
     'Sous-station',
     'Code',
@@ -118,7 +133,7 @@ export function exportCSV(substations, networkProjects = []) {
       `UtilW_${y}`,
       `UtilI_${y}`,
     ]),
-  ].join(';');
+  ].map((value) => escapeCSVValue(value));
 
   const rows = substations.map((s) => {
     const cols = [
@@ -142,14 +157,22 @@ export function exportCSV(substations, networkProjects = []) {
         (getUtilizationInjectionRigid(s, y, networkProjects) * 100).toFixed(1) + '%',
       );
     });
-    return cols.join(';');
+    return cols
+      .map((value, index) => escapeCSVValue(value, { neutralizeFormula: index < 3 }))
+      .join(';');
   });
 
-  _triggerDownload(
-    '\uFEFF' + [header, ...rows].join('\n'),
-    `resa-export-${_today()}.csv`,
-    'text/csv;charset=utf-8',
-  );
+  return [header.join(';'), ...rows].join('\n');
+}
+
+export function escapeCSVValue(value, { neutralizeFormula = false } = {}) {
+  if (value == null) return '';
+
+  let text = String(value);
+  if (neutralizeFormula && /^[=+\-@]/.test(text.trimStart())) text = `'${text}`;
+
+  if (/[;"\r\n]/.test(text)) return `"${text.replaceAll('"', '""')}"`;
+  return text;
 }
 
 // ── Import JSON ─────────────────────────────────────────────────────────────
@@ -182,6 +205,15 @@ export function importJSONFile(file, onSuccess, onError) {
 }
 
 // ── Helpers privés ──────────────────────────────────────────────────────────
+
+function isQuotaExceededError(error) {
+  return (
+    error?.name === 'QuotaExceededError' ||
+    error?.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    error?.code === 22 ||
+    error?.code === 1014
+  );
+}
 
 function _today() {
   return new Date().toISOString().slice(0, 10);

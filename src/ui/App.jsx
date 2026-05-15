@@ -8,7 +8,7 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 
 import { INITIAL_SUBSTATIONS, INITIAL_NETWORK_PROJECTS } from '../data/initial.js';
 import { uid, fmtDate } from '../utils/format.js';
-import { saveState, clearState, hydrateInitialAppState } from '../services/storage.js';
+import { saveState, clearState, hydrateInitialAppState, exportJSON } from '../services/storage.js';
 import { getEffectiveSubstations } from '../engines/capacity.js';
 import { normalizeProjects, normalizeStatus, normalizeSubstations } from '../utils/normalize.js';
 
@@ -29,6 +29,7 @@ import { MapPage } from './pages/map/MapPage.jsx';
 // Modals & drawers
 import { SaisieModal } from './pages/intake/SaisieModal.jsx';
 import { ActivityLogDrawer } from './shared/ActivityLogDrawer.jsx';
+import { ModalShell } from './shared/ModalShell.jsx';
 
 // Hooks
 import { useNavigation } from './hooks/useNavigation.js';
@@ -46,6 +47,9 @@ function App() {
   const [activityLog, setActivityLog] = useState(() => _initial.activityLog);
   const [savedAt] = useState(() => _initial.savedAt);
   const [sessionBanner, setSessionBanner] = useState(() => _initial.hasSession);
+  const [storageWarning, setStorageWarning] = useState(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState('');
 
   // ── Navigation (hook) ──────────────────────────────────────────────────────
   const {
@@ -84,7 +88,12 @@ function App() {
 
   // ── Autosave ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    saveState(substations, networkProjects, activityLog);
+    const result = saveState(substations, networkProjects, activityLog);
+    if (result.ok) {
+      setStorageWarning((current) => (current ? null : current));
+      return;
+    }
+    setStorageWarning(result);
   }, [substations, networkProjects, activityLog]);
 
   useEffect(() => {
@@ -166,6 +175,8 @@ function App() {
     setActivityLog([]);
     clearState();
     setSessionBanner(false);
+    setShowResetConfirm(false);
+    setResetConfirmation('');
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -201,9 +212,44 @@ function App() {
                   <button
                     className="btn-secondary"
                     style={{ fontSize: 12, padding: '5px 14px' }}
-                    onClick={handleReset}
+                    onClick={() => {
+                      setResetConfirmation('');
+                      setShowResetConfirm(true);
+                    }}
                   >
                     Repartir des données d'exemple
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {storageWarning && (
+              <div
+                className="session-banner"
+                style={{
+                  borderColor: 'var(--amber)',
+                  background: 'var(--amber-dim)',
+                }}
+              >
+                <span>
+                  {storageWarning.reason === 'quota'
+                    ? 'Sauvegarde locale impossible : le stockage du navigateur est plein.'
+                    : 'Sauvegarde locale impossible : une erreur navigateur est survenue.'}
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    className="btn-primary"
+                    style={{ fontSize: 12, padding: '5px 14px' }}
+                    onClick={() => exportJSON(substations, networkProjects, activityLog)}
+                  >
+                    Exporter JSON
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    style={{ fontSize: 12, padding: '5px 14px' }}
+                    onClick={() => setStorageWarning(null)}
+                  >
+                    Masquer
                   </button>
                 </div>
               </div>
@@ -289,6 +335,64 @@ function App() {
           onLogDelete={handleLogDelete}
           onNavigate={handleSelect}
         />
+
+        {showResetConfirm && (
+          <ModalShell
+            title="Repartir des données d'exemple"
+            subtitle="Cette action remplace la session locale par les données de démonstration."
+            onClose={() => {
+              setShowResetConfirm(false);
+              setResetConfirmation('');
+            }}
+            footer={
+              <>
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    setShowResetConfirm(false);
+                    setResetConfirmation('');
+                  }}
+                >
+                  Annuler
+                </button>
+                <button
+                  className="btn-primary"
+                  disabled={resetConfirmation !== 'REINITIALISER'}
+                  onClick={handleReset}
+                >
+                  Réinitialiser
+                </button>
+              </>
+            }
+          >
+            <div style={{ display: 'grid', gap: 12 }}>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Les sous-stations, projets réseau et activités de cette session locale seront
+                remplacés. Exportez vos données avant de confirmer si vous souhaitez les conserver.
+              </p>
+              <label
+                htmlFor="reset-confirmation"
+                style={{ display: 'grid', gap: 6, fontSize: 12, color: 'var(--text-secondary)' }}
+              >
+                Saisissez REINITIALISER pour confirmer
+                <input
+                  id="reset-confirmation"
+                  value={resetConfirmation}
+                  onChange={(e) => setResetConfirmation(e.target.value)}
+                  autoFocus
+                  style={{
+                    border: '1px solid var(--border)',
+                    borderRadius: 6,
+                    padding: '8px 10px',
+                    background: 'var(--bg-surface)',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                />
+              </label>
+            </div>
+          </ModalShell>
+        )}
       </div>
     </ProjectsCtx.Provider>
   );
