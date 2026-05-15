@@ -784,7 +784,7 @@ Synthèse fusionnée des constats des deux audits (PS-1 à PS-15, OP-1 à OP-29)
 - **Aucun TypeScript** : 14 080 LOC sans types ⇒ refactor à risque.
 - **Aucune CI** (`.github/workflows/` absent).
 - **`vite.config.js` minimaliste** : pas d'alias `@/`, pas de `manualChunks`, pas de variables d'environnement, pas de bundle visualizer.
-- **Plugin `@vitejs/plugin-react` (Babel) déprécié** ⇒ migrer vers `@vitejs/plugin-react-oxc`.
+- **Plugin React Vite** : utiliser `@vitejs/plugin-react` standard, dont la version courante intègre les optimisations OXC, plutôt que la dépendance dépréciée `@vitejs/plugin-react-oxc`.
 - **666 occurrences de `style={{` inline** dans 30 fichiers : impossible de garantir cohérence, dark mode, responsive.
 - **Syntaxe Tailwind utilisée** sans Tailwind installé : code zombie à clarifier (adopter ou supprimer).
 
@@ -1071,7 +1071,7 @@ Toutes ces actions sont **XS ou S**, n'impactent pas la conception métier, et d
 | QW-4 | Fix `key={Math.random()}` ⇒ id stable | XS | 3 | `AnnualTable.jsx:58` | **Terminé** — Développé : oui ; Commit local : `f09b475` ; Push GitHub : `origin/main` (`f09b475`) |
 | QW-5 | Fix `var(--surface)` ⇒ `var(--bg-surface)` | XS | 3 | `MapPage.jsx` | **Terminé** — Développé : oui ; Commit local : `f09b475` ; Push GitHub : `origin/main` (`f09b475`) |
 | QW-6 | Cleanup `map.remove()` et `chart.destroy()` en `useEffect return` | XS | 3 | `MapPage.jsx`, `DirectionalChart.jsx` | **Vérifié / déjà couvert** — Développé : vérification documentée ; Commit local : `f09b475` ; Push GitHub : `origin/main` (`f09b475`) ; Chart.js détruit déjà ses instances ; `MapPage` utilise `react-leaflet` sans carte Leaflet manuelle à nettoyer |
-| QW-7 | Migration `@vitejs/plugin-react` ⇒ `@vitejs/plugin-react-oxc` | XS | 2 | `vite.config.js` | **Terminé** — Développé : oui ; Commit local : `4c4ecdb` ; Push GitHub : `origin/main` (`4c4ecdb`) ; CI GitHub : `25945877447` success |
+| QW-7 | Utiliser `@vitejs/plugin-react` standard intégrant les optimisations OXC, sans dépendance dépréciée `@vitejs/plugin-react-oxc` | XS | 2 | `vite.config.js` | **Terminé / corrigé** — Développé : oui ; Commit local initial : `4c4ecdb` ; Push GitHub : `origin/main` (`4c4ecdb`) ; CI GitHub : `25945877447` success ; micro-correction dédiée : retrait de `@vitejs/plugin-react-oxc` |
 | QW-8 | Reset scroll content (`scrollTop = 0`) à chaque changement de `view`/`selectedId`/`selectedReqId` | XS | 4 | `App.jsx` ou `useNavigation.js` | **Terminé** — Développé : oui ; Commit local : `f09b475` ; Push GitHub : `origin/main` (`f09b475`) |
 | QW-9 | Gestion `QuotaExceededError` explicite (alerte utilisateur + proposition d'export) | XS | 4 | `storage.js:35` | **Terminé** — Développé : oui ; Commit local : `4c4ecdb` ; Push GitHub : `origin/main` (`4c4ecdb`) |
 | QW-10 | CSV escaping (guillemets, `;`, retours ligne, neutralisation formules Excel `= + - @`) | S | 3 | `storage.js` | **Terminé** — Développé : oui ; Commit local : `4c4ecdb` ; Push GitHub : `origin/main` (`4c4ecdb`) |
@@ -1316,7 +1316,7 @@ Classement par ratio **impact / effort** pour un démarrage immédiat.
 | 4 | Schémas Zod + remplacer `try/catch (_) {}` (storage + import) | P0 | S | ★★★★★ | Sécurité données + base réutilisable backend | À faire |
 | 5 | Clarifier `coeffN`/`coeffN1` avec expert RESA + documenter | P0 | XS | ★★★★★ | Seul point qui invaliderait toutes les sorties chiffrées | À faire |
 | 6 | Marge opérationnelle `securityMargin` configurable par poste | P0 | XS | ★★★★ | Évite saturation à la 1ʳᵉ contingence | À faire |
-| 7 | Code-splitting routes + `manualChunks` + plugin-react-oxc | P0 | S | ★★★★ | Bundle 250 → 120 KB gzip, démos plus rapides | À faire |
+| 7 | Code-splitting routes + `manualChunks` + plugin React standard | P0 | S | ★★★★ | Bundle 250 → 120 KB gzip, démos plus rapides | À faire |
 | 8 | Composants design system primitives (Modal a11y, Tooltip, Toast, ConfirmDialog, DataTable, Combobox) | P0 | L | ★★★★ | Bloque toutes les autres améliorations UX/a11y | À faire |
 | 9 | Découper `RequestWorkflowPanels.jsx` (1076 LOC → 8 fichiers) | P0 | M | ★★★ | Bloque toute évolution du workflow |
 | 10 | Migration store Zustand + suppression props drilling | P1 | M | ★★★★ | Prérequis à TanStack Query / backend |
