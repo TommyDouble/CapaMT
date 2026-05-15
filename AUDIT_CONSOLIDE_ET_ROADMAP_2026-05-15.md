@@ -1071,13 +1071,13 @@ Toutes ces actions sont **XS ou S**, n'impactent pas la conception métier, et d
 | QW-4 | Fix `key={Math.random()}` ⇒ id stable | XS | 3 | `AnnualTable.jsx:58` | **Terminé** — Développé : oui ; Commit local : `f09b475` ; Push GitHub : `origin/main` (`f09b475`) |
 | QW-5 | Fix `var(--surface)` ⇒ `var(--bg-surface)` | XS | 3 | `MapPage.jsx` | **Terminé** — Développé : oui ; Commit local : `f09b475` ; Push GitHub : `origin/main` (`f09b475`) |
 | QW-6 | Cleanup `map.remove()` et `chart.destroy()` en `useEffect return` | XS | 3 | `MapPage.jsx`, `DirectionalChart.jsx` | **Vérifié / déjà couvert** — Développé : vérification documentée ; Commit local : `f09b475` ; Push GitHub : `origin/main` (`f09b475`) ; Chart.js détruit déjà ses instances ; `MapPage` utilise `react-leaflet` sans carte Leaflet manuelle à nettoyer |
-| QW-7 | Migration `@vitejs/plugin-react` ⇒ `@vitejs/plugin-react-oxc` | XS | 2 | `vite.config.js` | À faire |
+| QW-7 | Migration `@vitejs/plugin-react` ⇒ `@vitejs/plugin-react-oxc` | XS | 2 | `vite.config.js` | **Terminé** — Développé : oui ; Commit local : `4c4ecdb` ; Push GitHub : `origin/main` (`4c4ecdb`) ; CI GitHub : `25945877447` success |
 | QW-8 | Reset scroll content (`scrollTop = 0`) à chaque changement de `view`/`selectedId`/`selectedReqId` | XS | 4 | `App.jsx` ou `useNavigation.js` | **Terminé** — Développé : oui ; Commit local : `f09b475` ; Push GitHub : `origin/main` (`f09b475`) |
-| QW-9 | Gestion `QuotaExceededError` explicite (alerte utilisateur + proposition d'export) | XS | 4 | `storage.js:35` | À faire |
-| QW-10 | CSV escaping (guillemets, `;`, retours ligne, neutralisation formules Excel `= + - @`) | S | 3 | `storage.js` | À faire |
+| QW-9 | Gestion `QuotaExceededError` explicite (alerte utilisateur + proposition d'export) | XS | 4 | `storage.js:35` | **Terminé** — Développé : oui ; Commit local : `4c4ecdb` ; Push GitHub : `origin/main` (`4c4ecdb`) |
+| QW-10 | CSV escaping (guillemets, `;`, retours ligne, neutralisation formules Excel `= + - @`) | S | 3 | `storage.js` | **Terminé** — Développé : oui ; Commit local : `4c4ecdb` ; Push GitHub : `origin/main` (`4c4ecdb`) |
 | QW-11 | `crypto.randomUUID()` à la place de `Date.now() + Math.random()` | XS | 2 | `format.js:12` | **Terminé** — Développé : oui ; Commit local : `f09b475` ; Push GitHub : `origin/main` (`f09b475`) |
-| QW-12 | Marge opérationnelle `securityMargin = 0.85` configurable par poste | XS | 4 | `transformerConfig` + `capacityEvaluation.js:100` | À faire |
-| QW-13 | Bandeau confirmation forte sur « Repartir des données d'exemple » (App.jsx:161) | XS | 4 | `App.jsx:151-164` | À faire |
+| QW-12 | Marge opérationnelle `securityMargin = 0.85` configurable par poste | XS | 4 | `transformerConfig` + `capacityEvaluation.js:100` | **Reporté** — validation métier requise avant modification des calculs capacitaires |
+| QW-13 | Bandeau confirmation forte sur « Repartir des données d'exemple » (App.jsx:161) | XS | 4 | `App.jsx:151-164` | **Terminé** — Développé : oui ; Commit local : `4c4ecdb` ; Push GitHub : `origin/main` (`4c4ecdb`) |
 | QW-14 | `useMemo` sur `getEffectiveSubstations` + cache `computeCapacityImpact` (WeakMap) | S | 5 | `App.jsx`, `capacityImpact.js` | **Terminé** — Développé : oui ; Commit local : `f09b475` ; Push GitHub : `origin/main` (`f09b475`) ; CI GitHub : `25934624241` success |
 
 ### Journal d'implémentation
@@ -1086,6 +1086,7 @@ Toutes ces actions sont **XS ou S**, n'impactent pas la conception métier, et d
 |---|---|---|---|---|---|
 | 2026-05-15 | QW-1 + QW-2 / Top 15 #1 — Socle qualité ESLint, Prettier, Husky, lint-staged, EditorConfig, `.nvmrc`, GitHub Actions CI | Oui | Oui — `32693e9 chore: add quality tooling` + `a20dfce style: format codebase and fix lint issues` | Oui — commits poussés sur `origin/main` jusqu'à `a20dfce` | `npm run ci` local OK ; GitHub Actions `CI` run `25933063052` OK |
 | 2026-05-15 | QW-3 + QW-4 + QW-5 + QW-6 + QW-8 + QW-11 + QW-14 / Top 15 #2 — Performance et quick wins sûrs | Oui | Oui — `f09b475 perf: memoize capacity calculations and quick wins` | Oui — commit poussé sur `origin/main` (`f09b475`) | `npm run lint`, `npm run format:check`, `npm test`, `npm run build`, `npm run ci`, `git diff --check` locaux OK ; GitHub Actions `CI` run `25934624241` OK |
+| 2026-05-16 | QW-7 + QW-9 + QW-10 + QW-13 — Quick wins sûrs restants ; QW-12 reporté | Oui | Oui — `4c4ecdb feat: complete safe quick wins` | Oui — commit poussé sur `origin/main` (`4c4ecdb`) | `npm run lint`, `npm run format:check`, `npm test`, `npm run build`, `npm run ci`, `git diff --check` locaux OK ; GitHub Actions `CI` run `25945877447` OK |
 
 **Effort cumulé : ~5-6 jours-homme.** Impact perçu massif sur perf et sécurité opérationnelle.
 
